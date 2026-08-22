@@ -2,7 +2,10 @@
 
 > [!NOTE]
 > **AI-Assisted Development Disclaimer**  
-> This version of the Fellowship Sim was developed with the support of AI Assitance. I recived some tokens from work to use on a personal project, in order to learn how AI Agents and the like work. Everything commited was fully manually reviewed, and should hopefully be okay. Im not too big on AI myself, however, it was a fun experiment and I feel like a disclaimer is needed.
+> **The core of the Simulation was not AI Assisted.** AI Was mostly used for the UI portion as I am not web developer, nor a UI expert. All AI touched code for bugs is manually verified by myself and revived. I have caught many wild choices it made.
+> While I currently do not have plans to make a PR to the main branch. Please ensure you go support and check them out over at the core [FellowSimC Repo](https://github.com/FellowSimc/fellowsimc).
+>
+> Generally speaking, I'm not a big fan of AI. However I was given essentially a few tokens to learn, and use agents during my free time. I chose to spend it on creating this application. I do not plan on purchasing any future tokens out-side of what was given to me.
 
 > [!IMPORTANT]
 > **No Support Disclaimer**  
