@@ -424,6 +424,10 @@ def run_server():
                 webbrowser.open(f"http://localhost:{PORT}")
             except Exception:
                 pass
+            try:
+                input("\nPress Enter to close this window...")
+            except Exception:
+                pass
         else:
             raise e
 
