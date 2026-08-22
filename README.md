@@ -36,7 +36,7 @@
 
 ---
 
-### 🔑 Setting Up FellowshipLogs API Credentials (For Character Importing)
+### Setting Up FellowshipLogs API Credentials (For Character Importing)
 
 To import characters, loadouts, and custom dungeon routes directly from FellowshipLogs, you will need to generate free API credentials:
 
