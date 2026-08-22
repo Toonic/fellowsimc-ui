@@ -161,10 +161,10 @@ const ALL_BLESSINGS = [
 let ALL_HERO_TALENTS = null;
 
 let state = {
-  reportCode: "yLzJ8M391AwYfVTK",
-  selectedFightId: 32,
+  reportCode: "",
+  selectedFightId: null,
   selectedPlayerId: null,
-  selectedPlayerName: "Midpls",
+  selectedPlayerName: "Rime",
   selectedHero: "rime",
   characterData: null,
   activeMode: "dungeon",
@@ -183,63 +183,31 @@ actions.precombat+=/frost_bolt
 actions+=/ice_blitz
 actions+=/winters_blessing
 actions+=/flight_of_the_navir
-actions+=/cold_snap,if=cooldown.chronoshift.up&worb<5&!buff.glacial_assault.at_max_stacks
+actions+=/cold_snap,if=cooldown.chronoshift.up&worb<5
 actions+=/chronoshift,if=(spirit>=70|spirit>=85|buff.ice_blitz.up)&(cooldown.cold_snap.charges=0|worb>=5)
 actions+=/frost_bolt`,
-  selectedTalents: new Set([
-    "glacial_assault",
-    "navirs_keeper",
-    "cascading_blitz",
-    "greater_glacial_blast",
-    "bursting_swallows",
-    "biting_cold",
-    "icy_talons",
-    "burstbolter",
-    "chilling_finesse",
-    "wisdom_of_the_north"
-  ]),
+  selectedTalents: new Set(),
   stats: {
-    primary: 183,
-    stamina: 397,
-    haste: 149,
-    expertise: 132,
-    crit: 120,
-    spirit: 104,
-    armor: 539
+    primary: 0,
+    stamina: 0,
+    haste: 0,
+    expertise: 0,
+    crit: 0,
+    spirit: 0,
+    armor: 0
   },
   gems: {
-    sapphire: 1500,
-    amethyst: 650,
-    emerald: 650,
-    ruby: 100,
-    diamond: 100,
+    sapphire: 0,
+    amethyst: 0,
+    emerald: 0,
+    ruby: 0,
+    diamond: 0,
     topaz: 0
   },
-  traitCounts: {
-    emerald_judgement: 1,
-    amethyst_splinters: 1,
-    brave_machinations: 1,
-    visions_of_grandeur: 1,
-    hunters_focus: 3,
-    martial_initiative: 2
-  },
-  blessingCounts: {
-    the_philosopher: 4,
-    the_herald: 3,
-    the_trickster: 3,
-    the_monarch: 1
-  },
-  gearAffixes: [
-    "head=redeemers_thorncrested_mask,affixes=the_philosopher/the_philosopher",
-    "shoulder=redeemers_spaulders_of_sacrifice,affixes=the_philosopher/the_philosopher",
-    "chest=witchslayers_bearskin_garb,affixes=the_herald/the_herald",
-    "wrists=hardened_leather_bracers,affixes=the_herald",
-    "hands=hungering_umbral_leather_handwraps,affixes=the_trickster",
-    "legs=leggings_of_the_arena,affixes=the_trickster",
-    "finger2=withering_barnacled_loop,affixes=the_trickster/the_trickster",
-    "back=hungering_bloodmist_shroud,affixes=the_monarch",
-    "main_hand=ashas_chronoshift_spire,affixes=the_herald"
-  ],
+  traitCounts: {},
+  blessingCounts: {},
+  gearAffixes: [],
+  gearItemNames: {},
   weapon: "chronoshift"
 };
 
@@ -351,6 +319,7 @@ function selectHero(heroKey, resetTalents = false) {
       selectApl.innerHTML = `
         <option value="base" selected>Dynamic Build Router (rime_base_apl.simc)</option>
         <option value="talons">Solved Talons APL (rime_talons_apl.simc)</option>
+        <option value="generic">Generic APL (rime_generic_apl.simc)</option>
       `;
     } else {
       selectApl.innerHTML = `
@@ -849,9 +818,14 @@ function initEventListeners() {
   const customAplCheck = document.getElementById("check-custom-apl");
   const customAplCont = document.getElementById("custom-apl-container");
   if (customAplCheck && customAplCont) {
+    customAplCheck.checked = state.useCustomApl;
+    customAplCont.style.display = state.useCustomApl ? "block" : "none";
+    if (selectApl) selectApl.disabled = state.useCustomApl;
+
     customAplCheck.addEventListener("change", (e) => {
       state.useCustomApl = e.target.checked;
       customAplCont.style.display = e.target.checked ? "block" : "none";
+      if (selectApl) selectApl.disabled = state.useCustomApl;
       rebuildProfileText();
     });
   }
@@ -860,7 +834,9 @@ function initEventListeners() {
     customAplEd.value = state.customAplText;
     customAplEd.addEventListener("input", (e) => {
       state.customAplText = e.target.value;
-      rebuildProfileText();
+      if (state.useCustomApl) {
+        rebuildProfileText();
+      }
     });
   }
 
@@ -1296,6 +1272,8 @@ function rebuildProfileText() {
     lines.push(state.customAplText);
   } else if (state.aplChoice === "talons" && heroKey === "rime") {
     lines.push(`apl/heroes/rime/rime_talons_apl.simc`);
+  } else if (state.aplChoice === "generic" && heroKey === "rime") {
+    lines.push(`apl/heroes/rime/rime_generic_apl.simc`);
   } else {
     lines.push(`apl/heroes/${heroKey}/${heroKey}_base_apl.simc`);
   }
@@ -1414,7 +1392,7 @@ function rebuildProfileText() {
   }
 }
 
-// Run Simulation
+// Run Simulation (Live SimulationCraft Log Streaming)
 async function runSimulation() {
   const profileText = document.getElementById("raw-profile-editor").value;
   const consoleBox = document.getElementById("sim-console-output");
@@ -1436,40 +1414,97 @@ async function runSimulation() {
     btnRun.innerHTML = `<span>RUNNING SIM...</span>`;
   }
   if (btnHtml) btnHtml.style.display = "none";
-  
-  const itersFormatted = (state.iterations || 1000).toLocaleString();
-  if (consoleBox) consoleBox.textContent = `Starting FellowSimc simulation engine...\nRunning ${itersFormatted} iterations across ${state.threads || 12} threads...`;
-  if (dpsVal) dpsVal.textContent = "SIMULATING...";
 
+  const iters = state.iterations || 1000;
+  const threads = state.threads || 12;
+  const itersFormatted = iters.toLocaleString();
+
+  if (dpsVal) dpsVal.textContent = "SIMULATING...";
+  if (metaVal) metaVal.textContent = `Executing ${itersFormatted} iterations across ${threads} threads...`;
+  if (consoleBox) {
+    consoleBox.textContent = "";
+  }
+
+  const startTime = Date.now();
   try {
     const res = await fetch("/api/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ profile_text: profileText })
     });
-    const data = await res.json();
 
-    if (data.error) {
-      if (dpsVal) dpsVal.textContent = "ERROR";
-      if (consoleBox) consoleBox.textContent = "Simulation Failed:\n" + data.error;
-      return;
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || `Server responded with ${res.status}`);
     }
 
-    if (data.mean_dps > 0) {
-      if (dpsVal) dpsVal.textContent = `${Math.round(data.mean_dps).toLocaleString()} DPS`;
-    } else {
-      if (dpsVal) dpsVal.textContent = "COMPLETED";
-    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let sseBuffer = "";
 
-    if (metaVal) metaVal.textContent = `${itersFormatted} Iterations • ${data.elapsed_seconds}s elapsed • Exit code: ${data.return_code}`;
-    if (consoleBox) consoleBox.textContent = data.stdout || "Simulation completed successfully.";
-    if (btnHtml) {
-      btnHtml.style.display = data.has_html ? "inline-flex" : "none";
-      btnHtml.disabled = !data.has_html;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      sseBuffer += decoder.decode(value, { stream: true });
+      const events = sseBuffer.split("\n\n");
+      sseBuffer = events.pop() || "";
+
+      for (const evtBlock of events) {
+        if (!evtBlock.trim()) continue;
+        const lines = evtBlock.split("\n");
+        let eventType = "message";
+        let eventData = null;
+
+        for (const line of lines) {
+          if (line.startsWith("event:")) {
+            eventType = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            try {
+              eventData = JSON.parse(line.slice(5).trim());
+            } catch (e) {
+              eventData = line.slice(5).trim();
+            }
+          }
+        }
+
+        if (eventType === "log" && eventData) {
+          if (consoleBox) {
+            const text = eventData.text || "";
+            const eol = eventData.eol || "\n";
+            if (eol === "\r" && consoleBox.textContent) {
+              const curLines = consoleBox.textContent.split("\n");
+              curLines[curLines.length - 1] = text;
+              consoleBox.textContent = curLines.join("\n");
+            } else {
+              consoleBox.textContent += (consoleBox.textContent ? "\n" : "") + text;
+            }
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+          }
+        } else if (eventType === "done" && eventData) {
+          const elapsedTotal = eventData.elapsed_seconds || ((Date.now() - startTime) / 1000).toFixed(2);
+          const meanDps = eventData.mean_dps ? Math.round(eventData.mean_dps) : 0;
+          const dpsStr = meanDps > 0 ? `${meanDps.toLocaleString()} DPS` : "COMPLETED";
+
+          if (dpsVal) dpsVal.textContent = dpsStr;
+          if (metaVal) metaVal.textContent = `${itersFormatted} Iterations • ${elapsedTotal}s elapsed • Exit code: ${eventData.return_code}`;
+
+          if (consoleBox && eventData.report) {
+            consoleBox.textContent += "\n\n" + eventData.report;
+            consoleBox.scrollTop = 0;
+          }
+
+          if (btnHtml) {
+            btnHtml.style.display = eventData.has_html ? "inline-flex" : "none";
+            btnHtml.disabled = !eventData.has_html;
+          }
+        }
+      }
     }
   } catch (e) {
     if (dpsVal) dpsVal.textContent = "ERROR";
-    if (consoleBox) consoleBox.textContent = "Network / execution error: " + e;
+    if (metaVal) metaVal.textContent = "Execution error.";
+    if (consoleBox) consoleBox.textContent += "\n\nSimulation execution error: " + e;
   } finally {
     if (btnRun) {
       btnRun.disabled = false;

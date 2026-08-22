@@ -365,17 +365,20 @@
           <div class="card-header">
             <h2>ACTION PRIORITY LIST (APL) CONFIGURATION</h2>
             <p>Select a hero APL preset or toggle Custom APL to write your own rotation.</p>
+          </div>
           <div class="card-body">
             <div class="form-group">
               <div class="form-label-row">
                 <label for="select-apl-preset">APL PRESET SELECTION</label>
                 <label class="checkbox-label toggle-custom-apl">
+                  <input type="checkbox" id="check-custom-apl">
                   <span>USE CUSTOM APL</span>
                 </label>
               </div>
               <select id="select-apl-preset" class="form-select">
                 <option value="base" selected>Dynamic Build Router (rime_base_apl.simc)</option>
                 <option value="talons">Solved Talons APL (rime_talons_apl.simc)</option>
+                <option value="generic">Generic APL (rime_generic_apl.simc)</option>
               </select>
             </div>
 
@@ -394,10 +397,10 @@ actions+=/frost_bolt"></textarea>
           </div>
         </div>
 
-        <!-- Simulation Precision & Iterations -->
+        <!-- Iterations -->
         <div class="card">
           <div class="card-header">
-            <h2>SIMULATION PRECISION & ITERATIONS</h2>
+            <h2>ITERATIONS</h2>
             <p>Configure iteration count and thread allocation for the simulator.</p>
           </div>
           <div class="card-body">
@@ -406,10 +409,10 @@ actions+=/frost_bolt"></textarea>
                 <label for="input-iterations">Simulation Iterations</label>
                 <input type="number" id="input-iterations" class="form-input" value="1000" min="100" max="100000" step="500">
                 <div class="chip-group">
-                  <button type="button" class="btn btn-primary btn-sm btn-chip" data-iterations="1000">1,000 (FAST)</button>
+                  <button type="button" class="btn btn-primary btn-sm btn-chip" data-iterations="1000">1,000</button>
                   <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="5000">5,000</button>
-                  <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="10000">10,000 (STANDARD)</button>
-                  <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="25000">25,000 (PRECISE)</button>
+                  <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="10000">10,000</button>
+                  <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="25000">25,000</button>
                 </div>
               </div>
 

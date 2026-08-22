@@ -269,9 +269,45 @@ hr {
                     self.send_json(500, {"error": f"simc.exe not found at {simc_exe}."})
                     return
 
-                cmd = [simc_exe, "custom_sim.simc", f"html=latest_sim.html", f"output=latest_sim.txt"]
+                # Send SSE headers for real-time live streaming
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "close")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.close_connection = True
+
+                def send_event(event_type, payload):
+                    try:
+                        msg = f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+                        self.wfile.write(msg.encode("utf-8"))
+                        self.wfile.flush()
+                    except Exception:
+                        pass
+
+                cmd = [simc_exe, "custom_sim.simc", "html=latest_sim.html", "output=latest_sim.txt"]
                 start_time = time.time()
-                proc = subprocess.run(cmd, cwd=RUN_DIR, capture_output=True, text=True)
+                proc = subprocess.Popen(cmd, cwd=RUN_DIR, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+
+                buf = ""
+                while True:
+                    char = proc.stdout.read(1)
+                    if not char and proc.poll() is not None:
+                        if buf:
+                            send_event("log", {"text": buf, "eol": "\n"})
+                        break
+                    if char == "\r":
+                        if buf:
+                            send_event("log", {"text": buf, "eol": "\r"})
+                            buf = ""
+                    elif char == "\n":
+                        if buf:
+                            send_event("log", {"text": buf, "eol": "\n"})
+                            buf = ""
+                    else:
+                        buf += char
+
                 elapsed = time.time() - start_time
 
                 txt_content = ""
@@ -283,23 +319,23 @@ hr {
                         pass
 
                 mean_dps = 0.0
-                m1 = re.search(r"DPS[=:]\s*([\d\.]+)", txt_content or proc.stdout)
+                m1 = re.search(r"DPS[=:]\s*([\d\.]+)", txt_content)
                 if m1:
                     mean_dps = float(m1.group(1))
                 else:
-                    m2 = re.search(r"DPS Ranking:\s*\n\s*([\d\.]+)", txt_content or proc.stdout)
+                    m2 = re.search(r"DPS Ranking:\s*\n\s*([\d\.]+)", txt_content)
                     if m2:
                         mean_dps = float(m2.group(1))
 
-                self.send_json(200, {
+                send_event("done", {
                     "success": proc.returncode == 0,
                     "return_code": proc.returncode,
                     "elapsed_seconds": round(elapsed, 2),
                     "mean_dps": mean_dps,
-                    "stdout": txt_content or proc.stdout,
-                    "stderr": proc.stderr,
+                    "report": txt_content,
                     "has_html": os.path.exists(html_file)
                 })
+                return
 
             elif url.path == "/api/save-hero-talents":
                 icons_dir = os.path.join(UI_DIR, "static", "assets", "icons")

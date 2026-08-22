@@ -1,37 +1,19 @@
-# ====================================================================
+﻿# ====================================================================
 # Rime Base Action Priority List Router
-# Automatically routes to the optimal APL based on active talents:
-#   1. Icy Talons Build      (talent.icy_talons)
-#   2. Soulfrost Torrent     (talent.soulfrost_torrent)
-#   3. Frostweaver's Wrath   (talent.frostweavers_wrath)
+# Automatically routes based on active talents:
+#   - If talent.icy_talons is active: routes to solved talons APL
+#   - Otherwise: defaults to generic APL
 # ====================================================================
 
-# --------------------------------------------------------------------
-# Precombat Setup
-# --------------------------------------------------------------------
 actions.precombat=snapshot_stats
 actions.precombat+=/frost_bolt
 
-# --------------------------------------------------------------------
-# In-Combat Routing Dispatcher
-# --------------------------------------------------------------------
+# In-Combat Routing Dispatcher: Route to talons if talent.icy_talons is picked, else default to main (generic)
 actions=run_action_list,name=talons,if=talent.icy_talons
-actions+=/run_action_list,name=soulfrost,if=talent.soulfrost_torrent
-actions+=/run_action_list,name=frostweaver,if=talent.frostweavers_wrath
-# Fallback:
-actions+=/run_action_list,name=talons
+actions+=/run_action_list,name=main
 
-# --------------------------------------------------------------------
-# 1. Talons Build Action List (Solved Midpls Wyrmheart)
-# --------------------------------------------------------------------
+# 1. Generic APL (Default for non-talons specs)
+apl/heroes/rime/rime_generic_apl.simc
+
+# 2. Solved Talons APL (For talent.icy_talons specs)
 apl/heroes/rime/rime_talons_apl.simc
-
-# --------------------------------------------------------------------
-# 2. Soulfrost Torrent Action List (Placeholder -> Talons)
-# --------------------------------------------------------------------
-actions.soulfrost=run_action_list,name=talons
-
-# --------------------------------------------------------------------
-# 3. Frostweaver's Wrath Action List (Placeholder -> Talons)
-# --------------------------------------------------------------------
-actions.frostweaver=run_action_list,name=talons
