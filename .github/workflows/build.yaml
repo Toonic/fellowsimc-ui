@@ -27,7 +27,6 @@ jobs:
           Copy-Item -Recurse ui release-package\ui
           Remove-Item -Recurse -Force release-package\ui\__pycache__ -ErrorAction SilentlyContinue
           Remove-Item -Force release-package\ui\*config.json -ErrorAction SilentlyContinue
-          Compress-Archive -Path release-package\* -DestinationPath simc-windows.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
