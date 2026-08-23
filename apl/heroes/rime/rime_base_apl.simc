@@ -1,19 +1,30 @@
-﻿# ====================================================================
+# ====================================================================
 # Rime Base Action Priority List Router
 # Automatically routes based on active talents:
-#   - If talent.icy_talons is active: routes to solved talons APL
+#   - If talent.icy_talons is active: routes to talons
+#   - If talent.frostweavers_wrath is active: routes to Frostweaver APL
+#   - If talent.soulfrost_torrent is active: routes to Soulfrost APL
 #   - Otherwise: defaults to generic APL
 # ====================================================================
 
+# Precombat
 actions.precombat=snapshot_stats
 actions.precombat+=/frost_bolt
 
-# In-Combat Routing Dispatcher: Route to talons if talent.icy_talons is picked, else default to main (generic)
-actions=run_action_list,name=talons,if=talent.icy_talons
-actions+=/run_action_list,name=main
-
-# 1. Generic APL (Default for non-talons specs)
+# 1. Generic APL (Default for unspecialized specs)
 apl/heroes/rime/rime_generic_apl.simc
 
 # 2. Solved Talons APL (For talent.icy_talons specs)
 apl/heroes/rime/rime_talons_apl.simc
+
+# 3. Frostweaver's Wrath APL (For talent.frostweavers_wrath specs)
+apl/heroes/rime/rime_frostweaver_apl.simc
+
+# 4. Soulfrost Torrent APL (For talent.soulfrost_torrent specs)
+apl/heroes/rime/rime_soulfrost_apl.simc
+
+# Master Routing Dispatcher (Defined at end so it routes to the correct loaded list)
+actions=run_action_list,name=talons,if=talent.icy_talons
+actions+=/run_action_list,name=frostweaver,if=talent.frostweavers_wrath
+actions+=/run_action_list,name=soulfrost,if=talent.soulfrost_torrent
+actions+=/run_action_list,name=main

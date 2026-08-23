@@ -151,3 +151,5 @@ CMakeLists.txt.user
 
 UpgradeLog.htm
 libsimcengine.prl
+
+ui/config.json

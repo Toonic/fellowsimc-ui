@@ -3,9 +3,7 @@
 # Solved from Wyrmheart +82 Dungeon Optimization
 # ====================================================================
 
-# --------------------------------------------------------------------
-# Precombat Opener
-# --------------------------------------------------------------------
+# Precombat
 actions.precombat=snapshot_stats
 actions.precombat+=/frost_bolt
 

@@ -1,8 +1,4 @@
 :root {
-  --fs-darkBG: #0f0f11;
-  --fs-darkBG-80: rgba(15, 15, 17, 0.8);
-  --fs-darkBG-50: rgba(15, 15, 17, 0.5);
-  --fs-darkBG-30: rgba(15, 15, 17, 0.3);
   
   --bg-page: #000000;
   --bg-header: #0f0f11;
@@ -167,17 +163,6 @@ body {
 .btn-secondary:hover:not(:disabled) {
   background: rgba(176, 142, 88, 0.1);
   color: var(--text-gold-bright);
-}
-
-.btn-dark {
-  background: #18181b;
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-}
-
-.btn-dark:hover:not(:disabled) {
-  background: #27272a;
-  color: var(--text-white);
 }
 
 .btn:disabled {
@@ -367,17 +352,6 @@ body {
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-}
-
-.badge-gold {
-  padding: 3px 8px;
-  background: rgba(176, 142, 88, 0.15);
-  border: 1px solid var(--border-gold);
-  border-radius: var(--radius-sm);
-  color: var(--text-gold-bright);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
 .char-quick-stats {
@@ -705,6 +679,13 @@ body {
   gap: 12px;
 }
 
+.stat-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
 .stat-box label {
   display: block;
   font-size: 11px;
@@ -712,38 +693,7 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.traits-summary-area {
-  margin-top: 16px;
-}
-
-.traits-summary-area label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-gold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-
-.badges-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tag-badge {
-  padding: 4px 10px;
-  background: var(--bg-input);
-  border: 1px solid rgba(176, 142, 88, 0.3);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-gold);
-  letter-spacing: 0.3px;
+  margin-bottom: 0;
 }
 
 /* Mode Cards Grid */
@@ -821,14 +771,6 @@ body {
 .input-unit {
   font-weight: 700;
   color: var(--text-gold);
-}
-
-/* APL Config Row */
-.apl-config-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
 }
 
 .toggle-custom-apl {
@@ -1075,8 +1017,8 @@ body {
 }
 
 .stepper-card.active {
-  border-color: rgba(6, 182, 212, 0.5);
-  background: rgba(6, 182, 212, 0.07);
+  border-color: rgba(176, 142, 88, 0.5);
+  background: rgba(176, 142, 88, 0.08);
 }
 
 .stepper-name {
@@ -1132,5 +1074,70 @@ body {
 }
 
 .stepper-card.active .step-val {
-  color: #22d3ee;
+  color: var(--text-gold);
+}
+
+/* Gear Sets Grid & Cards */
+.sets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.set-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.set-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #1e1e24;
+}
+
+.set-card.active {
+  border-color: rgba(176, 142, 88, 0.7);
+  background: rgba(176, 142, 88, 0.12);
+}
+
+.set-card-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.set-card.active .set-card-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.set-card-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-gold);
+  transition: all 0.15s ease;
+}
+
+.set-card.active .set-card-checkbox {
+  border-color: var(--border-gold);
+  background: rgba(176, 142, 88, 0.25);
+}
+
+/* Utility */
+.hidden {
+  display: none !important;
 }

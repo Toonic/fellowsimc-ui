@@ -34,11 +34,18 @@ RIME_TALENT_MAP = {
 # Weapon mapping table from weapon names to Simc weapon constants
 WEAPON_MAP = {
     "Chronoshift": "chronoshift",
-    "Voidbringer": "voidbringer",
+    "Icicles of Anzhyr": "icicles_of_anzhyr",
+    "Icicles": "icicles_of_anzhyr",
+    "Anzhyr": "icicles_of_anzhyr",
+    "Voidbringer": "voidbringers_touch",
+    "Voidbringer's Touch": "voidbringers_touch",
+    "Voidbringers Touch": "voidbringers_touch",
     "Nature's Fury": "natures_fury",
+    "Natures Fury": "natures_fury",
     "Skybolt": "twilight_skybolt",
     "Fated Strike": "fated_strike",
     "Sahril": "sahrils_wrath",
+    "Sahril's Wrath": "sahrils_wrath",
     "Earthbreaker": "earthbreaker"
 }
 
@@ -95,9 +102,21 @@ TRAIT_SIMC_MAP = {
 SET_SIMC_MAP = {
     "dark prophecy": "dark_prophecy",
     "drakheim's absolution": "drakheims_absolution",
+    "drakheims absolution": "drakheims_absolution",
     "seal of the heskyr": "seal_of_the_heskyr",
     "death's grasp": "deaths_grasp",
     "deaths grasp": "deaths_grasp",
+    "draconic might": "draconic_might",
+    "eldrin's deceit": "eldrin_deceit",
+    "eldrins deceit": "eldrin_deceit",
+    "eldrin's fury": "eldrin_fury",
+    "eldrins fury": "eldrin_fury",
+    "haunting lament": "haunting_lament",
+    "sin warding": "sin_warding",
+    "sinthara's veil": "sintharas_veil",
+    "sintharas veil": "sintharas_veil",
+    "torment of baelaurum": "torment_of_baelaurum",
+    "tuzari grace": "tuzari_grace",
     "undulating spirit": "undulating_spirit"
 }
 
@@ -362,7 +381,7 @@ def generate_simc_profile(character_data, options=None):
     gear = combatant.get("gear", [])
     combatant_stats = combatant.get("stats", {})
     
-    # 1. Aggregate Gear Attributes
+    # 1. Aggregate Raw Gear Attributes directly from item affixes (1:1 Gear Mode)
     attrs = {
         "Intellect": 0,
         "Strength": 0,
@@ -375,6 +394,29 @@ def generate_simc_profile(character_data, options=None):
         "Armor": 0
     }
     
+    sheet_stats = {
+        "Intellect": 0,
+        "Strength": 0,
+        "Agility": 0,
+        "Stamina": 0,
+        "Haste": 0,
+        "Expertise": 0,
+        "Critical Strike": 0,
+        "Spirit": 0,
+        "Armor": 0
+    }
+    
+    if combatant_stats:
+        sheet_stats["Intellect"] = combatant_stats.get("Intellect", {}).get("min", 0)
+        sheet_stats["Strength"] = combatant_stats.get("Strength", {}).get("min", 0)
+        sheet_stats["Agility"] = combatant_stats.get("Agility", {}).get("min", 0)
+        sheet_stats["Stamina"] = combatant_stats.get("Stamina", {}).get("min", 0)
+        sheet_stats["Haste"] = combatant_stats.get("Haste", {}).get("min", 0)
+        sheet_stats["Expertise"] = combatant_stats.get("Expertise", {}).get("min", 0)
+        sheet_stats["Critical Strike"] = combatant_stats.get("Crit", {}).get("min", 0) or combatant_stats.get("Critical Strike", {}).get("min", 0)
+        sheet_stats["Spirit"] = combatant_stats.get("Spirit", {}).get("min", 0)
+        sheet_stats["Armor"] = combatant_stats.get("Armor", {}).get("min", 0)
+
     trait_counts = {}
     blessings_list = []
     blessing_counts = {}
@@ -430,12 +472,24 @@ def generate_simc_profile(character_data, options=None):
             for skey, sval in SET_SIMC_MAP.items():
                 if skey in sname:
                     set_counts[sval] = set_counts.get(sval, 0) + 1
+                    break
                     
         # Weapon detection
         raw_iname = item.get("name", "")
         for wkey in WEAPON_MAP:
             if wkey.lower() in raw_iname.lower():
                 weapon_name = WEAPON_MAP[wkey]
+
+    # Add +100 base primary stat for UI display
+    hero_key = (hero_type or "rime").lower()
+    if hero_key in ["rime", "aeona", "elarion"]:
+        attrs["Intellect"] += 100
+    elif hero_key in ["tariq", "xavian", "gunde"]:
+        attrs["Strength"] += 100
+    elif hero_key in ["mara", "ardeos"]:
+        attrs["Agility"] += 100
+    else:
+        attrs["Intellect"] += 100
 
     # Gem Powers from combatant stats
     gem_powers = {
@@ -469,34 +523,34 @@ def generate_simc_profile(character_data, options=None):
     # Hero-Specific Legendaries Lookup
     HERO_LEGENDARY_PATTERNS = {
         "rime": [
-            ("undulating_spirit", ["eldrin signet of undulating spirits", "undulating spirits", "undulating spirit", "signet of undulating spirits"]),
-            ("frostwyrms_spite", ["drakesblood tapestry", "drakesblood", "frostwyrms spite", "frostwyrm's spite"]),
-            ("skandis_decree", ["skandi's bands of endless winter", "skandis bands of endless winter", "bands of endless winter", "skandi's decree", "skandis decree"])
+            ("undulating_spirit", ["undulating", "signet of undulating", "eldrin signet", "undulating spirit", "undulating spirits", "undulat"]),
+            ("frostwyrms_spite", ["drakesblood", "frostwyrm", "spite", "drakesblood tapestry"]),
+            ("skandis_decree", ["skandi", "endless winter", "bands of endless winter"])
         ],
         "mara": [
-            ("from_the_shadows", ["shadow-lined", "shadow lined", "assassin's shadow-lined cape"]),
-            ("drenched_in_blood", ["stalker", "crimson loop", "stalker's crimson loop"]),
-            ("vexiras_venom", ["vexira", "wristbands of vexira's prey", "vexiras prey", "executioner's unsanitary bands", "executioners unsanitary bands"])
+            ("from_the_shadows", ["shadow-lined", "shadow lined", "shadow_lined", "assassin's shadow"]),
+            ("drenched_in_blood", ["drenched in blood", "drenched_in_blood", "stalker", "crimson loop"]),
+            ("vexiras_venom", ["vexira", "vexiras prey", "wristbands of vexira"])
         ],
         "tariq": [
-            ("slayers_mosh", ["slayer king", "drape of the slayer king"]),
-            ("thundering_vortex", ["thundering vortex", "loop of the thundering vortex"]),
-            ("executioners_grin", ["executioner", "executioner's unsanitary bands", "executioners unsanitary bands"])
+            ("slayers_mosh", ["slayer king", "slayers mosh", "slayers_mosh"]),
+            ("thundering_vortex", ["thundering vortex", "thundering_vortex", "vortex"]),
+            ("executioners_grin", ["executioner", "executioners grin", "executioners_grin"])
         ],
         "ardeos": [
-            ("fire_toad", ["flaming toad", "exquisite flaming toad cloak"]),
-            ("explosivo", ["boomtastic", "ring of boomtastic explosions"]),
-            ("devouring_flame", ["devouring flame", "draconic bracers of the devouring flame"])
+            ("fire_toad", ["flaming toad", "fire toad", "fire_toad"]),
+            ("explosivo", ["explosivo", "boomtastic", "explosions"]),
+            ("devouring_flame", ["devouring flame", "devouring_flame"])
         ],
         "elarion": [
-            ("shimmer", ["shimmering silver", "shimmering silver cape"]),
-            ("astronomers_hail", ["master astronomer", "master astronomer's bracers"]),
-            ("starstrikers_ascent", ["starstriker", "signet of starstriker's ascent"])
+            ("shimmer", ["shimmering silver", "shimmer"]),
+            ("astronomers_hail", ["astronomer", "astronomers hail", "astronomers_hail"]),
+            ("starstrikers_ascent", ["starstriker", "starstrikers ascent", "starstrikers_ascent"])
         ],
         "aeona": [
-            ("lonesome_song", ["lone diety", "lone deity", "time-warped drape of the lone diety"]),
-            ("chrono_trigger", ["chrono trigger", "signet of the chrono trigger"]),
-            ("mass_entropy", ["withering shores", "bands of the withering shores"])
+            ("lonesome_song", ["lone diety", "lone deity", "lonesome song", "lonesome_song"]),
+            ("chrono_trigger", ["chrono trigger", "chrono_trigger"]),
+            ("mass_entropy", ["withering shores", "mass entropy", "mass_entropy"])
         ],
         "gunde": [
             ("lego_1", ["sinister apron", "carver's sinister apron"]),
@@ -504,16 +558,16 @@ def generate_simc_profile(character_data, options=None):
             ("lego_3", ["raven god", "feathered wraps of the raven god"])
         ],
         "xavian": [
-            ("grossly_incandescent", ["sunlit kingdom", "gilded cloak of the sunlit kingdom"]),
-            ("solar_glare", ["horizon", "runed loop of the horizon"]),
-            ("fortress_in_the_sands", ["fortress", "sandworn bands of the fortress"])
+            ("grossly_incandescent", ["sunlit kingdom", "grossly incandescent", "grossly_incandescent"]),
+            ("solar_glare", ["horizon", "solar glare", "solar_glare"]),
+            ("fortress_in_the_sands", ["fortress", "sandworn", "fortress in the sands"])
         ]
     }
 
     detected_legendary = "none"
-    # 1. First priority: Item with Quality == 6 (Legendary quality) in the matching slot
+    # 1. First priority: Item with Quality >= 6 in the matching slot
     for item in gear:
-        if item.get("quality") == 6:
+        if item.get("quality", 0) >= 6:
             slot = item.get("slot")
             if slot in HERO_SLOT_LEGENDARY.get(hero_type, {}):
                 detected_legendary = HERO_SLOT_LEGENDARY[hero_type][slot]
@@ -534,7 +588,11 @@ def generate_simc_profile(character_data, options=None):
             if detected_legendary != "none":
                 break
 
-    legendary_name = options.get("legendary", detected_legendary)
+    opt_leg = options.get("legendary")
+    if opt_leg and opt_leg != "none":
+        legendary_name = opt_leg
+    else:
+        legendary_name = detected_legendary
 
     # 3. Build .simc Output
     lines = []
@@ -590,23 +648,42 @@ def generate_simc_profile(character_data, options=None):
     if use_custom_apl and custom_apl_text:
         lines.append("# Custom Action Priority List")
         lines.append(custom_apl_text)
-    elif apl_choice == "talons":
-        lines.append(f"apl/heroes/{hero_type}/{hero_type}_talons_apl.simc")
+    elif apl_choice == "talons" and hero_type == "rime":
+        lines.append(f"apl/heroes/rime/rime_talons_apl.simc")
+    elif apl_choice == "frostweaver" and hero_type == "rime":
+        lines.append(f"apl/heroes/rime/rime_frostweaver_apl.simc")
+    elif apl_choice == "soulfrost" and hero_type == "rime":
+        lines.append(f"apl/heroes/rime/rime_soulfrost_apl.simc")
+    elif apl_choice == "generic" and hero_type == "rime":
+        lines.append(f"apl/heroes/rime/rime_generic_apl.simc")
     else:
         lines.append(f"apl/heroes/{hero_type}/{hero_type}_base_apl.simc")
     lines.append("")
     
-    # Stats
-    lines.append(f"# Gear Attributes & Ratings")
-    if attrs["Intellect"] > 0: lines.append(f"gear_intellect={attrs['Intellect']}")
-    if attrs["Strength"] > 0: lines.append(f"gear_strength={attrs['Strength']}")
-    if attrs["Agility"] > 0: lines.append(f"gear_agility={attrs['Agility']}")
-    if attrs["Stamina"] > 0: lines.append(f"gear_stamina={attrs['Stamina']}")
-    if attrs["Haste"] > 0: lines.append(f"gear_haste_rating={attrs['Haste']}")
-    if attrs["Expertise"] > 0: lines.append(f"gear_expertise_rating={attrs['Expertise']}")
-    if attrs["Critical Strike"] > 0: lines.append(f"gear_crit_rating={attrs['Critical Strike']}")
-    if attrs["Spirit"] > 0: lines.append(f"gear_spirit={attrs['Spirit']}")
-    if attrs["Armor"] > 0: lines.append(f"gear_armor={attrs['Armor']}")
+    # Gear Stats: Primary stats subtract 100 base for SimC engine
+    # Only include gear sets where the player has 2+ pieces equipped (all sets require 2/2)
+    active_sets_list = [sval for sval, count in set_counts.items() if count >= 2]
+    
+    gear_int = max(0, attrs["Intellect"] - 100) if attrs["Intellect"] >= 100 else attrs["Intellect"]
+    gear_str = max(0, attrs["Strength"] - 100) if attrs["Strength"] >= 100 else attrs["Strength"]
+    gear_agi = max(0, attrs["Agility"] - 100) if attrs["Agility"] >= 100 else attrs["Agility"]
+    gear_stam = attrs["Stamina"]
+    gear_haste = attrs["Haste"]
+    gear_exp = attrs["Expertise"]
+    gear_crit = attrs["Critical Strike"]
+    gear_spirit = attrs["Spirit"]
+    gear_armor = attrs["Armor"]
+
+    lines.append(f"# Gear Attributes & Ratings (Primary Stat -100 for SimC base engine)")
+    if gear_int > 0: lines.append(f"gear_intellect={gear_int}")
+    if gear_str > 0: lines.append(f"gear_strength={gear_str}")
+    if gear_agi > 0: lines.append(f"gear_agility={gear_agi}")
+    if gear_stam > 0: lines.append(f"gear_stamina={gear_stam}")
+    if gear_haste > 0: lines.append(f"gear_haste_rating={gear_haste}")
+    if gear_exp > 0: lines.append(f"gear_expertise_rating={gear_exp}")
+    if gear_crit > 0: lines.append(f"gear_crit_rating={gear_crit}")
+    if gear_spirit > 0: lines.append(f"gear_spirit={gear_spirit}")
+    if gear_armor > 0: lines.append(f"gear_armor={gear_armor}")
     lines.append("")
     
     # Gem Powers
@@ -618,10 +695,8 @@ def generate_simc_profile(character_data, options=None):
 
     # Sets & Legendary
     lines.append(f"# Active Sets & Legendary")
-    lines.append(f"sets.dark_prophecy=1")
-    lines.append(f"sets.drakheims_absolution=1")
-    lines.append(f"sets.seal_of_the_heskyr=1")
-    lines.append(f"sets.deaths_grasp=1")
+    for sname in active_sets_list:
+        lines.append(f"sets.{sname}=1")
     if legendary_name and legendary_name != "none":
         lines.append(f"legendary.{legendary_name}=1")
     lines.append("")
@@ -643,8 +718,8 @@ def generate_simc_profile(character_data, options=None):
     # Talents
     if talents:
         lines.append(f"# Talents")
-        talents_str = "/".join([f"{t}:1" for t in talents])
-        lines.append(f"talents={talents_str}")
+        tal_str = "/".join([f"{t}:1" for t in talents])
+        lines.append(f"talents={tal_str}")
         lines.append("")
 
     profile_text = "\n".join(lines)
@@ -654,10 +729,12 @@ def generate_simc_profile(character_data, options=None):
         "hero_type": hero_type,
         "player_name": player_name,
         "attrs": attrs,
+        "sheet_stats": sheet_stats,
         "talents": talents,
         "legendary": legendary_name,
         "traits": list(trait_counts.keys()),
         "trait_counts": trait_counts,
+        "active_sets": active_sets_list,
         "blessings": blessings_list,
         "blessing_counts": blessing_counts,
         "gear_items_output": gear_items_output,

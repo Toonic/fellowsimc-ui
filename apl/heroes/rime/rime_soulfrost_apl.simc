@@ -1,0 +1,58 @@
+# ====================================================================
+# Rime - Soulfrost Torrent Build Action Priority List
+# ====================================================================
+
+# --------------------------------------------------------------------
+# Precombat
+# --------------------------------------------------------------------
+actions.precombat=snapshot_stats
+actions.precombat+=/frost_bolt
+
+# Main Dispatcher
+actions=run_action_list,name=soulfrost
+
+# --------------------------------------------------------------------
+# Priority 1: Major Off-GCD Cooldowns & Amplifiers (Keep strictly on CD!)
+# --------------------------------------------------------------------
+actions.soulfrost=ice_blitz
+actions.soulfrost+=/winters_blessing,if=worb>=4
+actions.soulfrost+=/flight_of_the_navir
+actions.soulfrost+=/cold_snap,if=cooldown.chronoshift.up&worb<4&!buff.glacial_assault.at_max_stacks&(!blessing.the_vehement|!buff.the_vehement.at_max_stacks|buff.frostwyrms_spite.up)
+actions.soulfrost+=/chronoshift,if=(spirit>=70|spirit>=85|buff.ice_blitz.up|fight_remains<=30)&(cooldown.cold_snap.charges=0|worb>=4)&target.time_to_die>=10
+actions.soulfrost+=/wrath_of_winter,if=(target.time_to_die>=18|fight_remains<=20)&(buff.ice_blitz.up|spirit>=85)
+actions.soulfrost+=/icicles_of_anzhyr,if=!raid_event.adds.exists|active_enemies%2>=raid_event.adds.count|raid_event.adds.in>=12
+actions.soulfrost+=/voidbringers_touch,if=!debuff.voidbringer_accumulator.up
+
+# --------------------------------------------------------------------
+# Priority 2: FREE Glacial Assault Procs (0 Winter Orb Cost - Spend First!)
+# --------------------------------------------------------------------
+actions.soulfrost+=/glacial_blast,if=buff.glacial_assault.at_max_stacks
+
+# --------------------------------------------------------------------
+# Priority 3: Frostwyrm's Spite & The Vehement Empowered Cold Snap (Immediately after Beam)
+# --------------------------------------------------------------------
+# Massive burst damage: consumes 30 stacks of Frostwyrm's Spite + Vehement max stack cleave
+actions.soulfrost+=/cold_snap,if=buff.frostwyrms_spite.up&(buff.winters_embrace.up|cooldown.bursting_ice.remains>gcd.max*2|target.time_to_die<=8)
+
+# --------------------------------------------------------------------
+# Priority 4: AoE Rotation (Beam -> Empowered Cold Snap -> Bursting Ice -> Comet Spam in Winter's Embrace)
+# --------------------------------------------------------------------
+actions.soulfrost+=/freezing_torrent,if=active_enemies>=2&target.time_to_die>=3
+actions.soulfrost+=/bursting_ice,if=active_enemies>=2&(worb>=4|cooldown.freezing_torrent.remains>0)
+actions.soulfrost+=/ice_comet,if=active_enemies>=2&buff.winters_embrace.up&(worb>=2|buff.undulating_spirit.react)
+actions.soulfrost+=/ice_comet,if=active_enemies>=2&worb>=4
+
+# --------------------------------------------------------------------
+# Priority 5: Single Target Rotation (Bursting -> Beam -> Empowered Cold Snap -> Glacial Blast Dumps)
+# --------------------------------------------------------------------
+actions.soulfrost+=/bursting_ice,if=active_enemies=1
+actions.soulfrost+=/freezing_torrent,if=active_enemies=1&target.time_to_die>=3
+actions.soulfrost+=/cold_snap,if=active_enemies=1&cooldown.cold_snap.charges>0&!buff.glacial_assault.at_max_stacks&worb<5&(!blessing.the_vehement|!buff.the_vehement.at_max_stacks|buff.frostwyrms_spite.up)
+actions.soulfrost+=/glacial_blast,if=active_enemies=1&(worb>=2|buff.undulating_spirit.react|buff.winters_embrace.up)
+
+# --------------------------------------------------------------------
+# Priority 6: Builder & Base Filler (Hold Cold Snap if Vehement at max stacks waiting for Beam!)
+# --------------------------------------------------------------------
+actions.soulfrost+=/cold_snap,if=worb<5&!buff.glacial_assault.at_max_stacks&(!blessing.the_vehement|!buff.the_vehement.at_max_stacks|buff.frostwyrms_spite.up)
+actions.soulfrost+=/natures_fury
+actions.soulfrost+=/frost_bolt
