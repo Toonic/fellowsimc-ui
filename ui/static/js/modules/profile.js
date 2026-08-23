@@ -1,5 +1,5 @@
 // Profile Generator for SimC profiles
-import { HERO_DEFINITIONS } from "../data/heroes.js";
+import { HERO_DEFINITIONS } from "../data/heroes/index.js";
 
 export class ProfileGenerator {
   static generateActorBlock(build, actorName) {
@@ -160,43 +160,7 @@ export class ProfileGenerator {
     ];
 
     if (isCompare) {
-      lines.push(`single_actor_batch=1`);
-      lines.push(`report_details=1`);
-      lines.push(`chart_show_relative_difference=1`);
-      lines.push(`relative_difference_base="Current_Editor"`);
-    }
-    lines.push(``);
-
-    if (encounterMode === "dungeon") {
-      if (state.selectedRouteType === "custom_imported" && state.customRouteText) {
-        lines.push(`# Encounter: Custom Imported Dungeon Route`);
-        lines.push(state.customRouteText);
-      } else {
-        lines.push(`# Encounter: Dungeon Route - Eternal 62 (Exported from a Wyrmheart 62 route)`);
-        lines.push(`apl/routes/wyrmheart_62_solo.simc`);
-      }
-    } else if (encounterMode === "single_target") {
-      const dur = document.getElementById("input-st-duration")?.value || 360;
-      lines.push(`# Encounter: Single Target (${dur}s)`);
-      lines.push(`max_time=${dur}`);
-      lines.push(`vary_combat_length=0.0`);
-      lines.push(`fight_style=Patchwerk`);
-    } else if (encounterMode === "aoe") {
-      const targets = document.getElementById("input-aoe-targets")?.value || 10;
-      const dur = document.getElementById("input-aoe-duration")?.value || 360;
-      lines.push(`# Encounter: AoE (${targets} Targets, ${dur}s)`);
-      lines.push(`max_time=${dur}`);
-      lines.push(`vary_combat_length=0.0`);
-      lines.push(`fight_style=Patchwerk`);
-      lines.push(`desired_targets=${targets}`);
-    }
-
-    lines.push(``);
-
-    if (isCompare) {
-      // Multi-Actor Compare Mode using full standalone actor definitions
       const usedNames = new Set();
-
       const sanitizeActorName = (rawName) => {
         let clean = rawName.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').trim();
         if (!clean) clean = "Build";
@@ -209,12 +173,27 @@ export class ProfileGenerator {
         return finalName;
       };
 
-      // 1. Baseline Actor: Current Editor
-      const baseName = "Current_Editor";
-      usedNames.add(baseName);
-      lines.push(ProfileGenerator.generateActorBlock(state, baseName));
+      // Collect all selected actors in display order
+      const selectedActors = [];
 
-      // 2. Compared Builds (from savedBuilds and checked checkboxes)
+      // 1. Current Editor (only if checked / selected)
+      const domCurrentChecked = document.querySelector('.compare-build-checkbox[value="__current__"]:checked');
+      const isCurrentSelected = domCurrentChecked ? true : (
+        state.selectedCompareBuildIds && (
+          (typeof state.selectedCompareBuildIds.has === "function" && state.selectedCompareBuildIds.has("__current__")) ||
+          (Array.isArray(state.selectedCompareBuildIds) && state.selectedCompareBuildIds.includes("__current__"))
+        )
+      );
+
+      if (isCurrentSelected) {
+        selectedActors.push({
+          name: sanitizeActorName("Current_Editor"),
+          build: state,
+          displayName: "Current Editor"
+        });
+      }
+
+      // 2. Saved Builds
       const domCheckedIds = new Set();
       document.querySelectorAll(".compare-build-checkbox:checked").forEach(cb => {
         if (cb.value && cb.value !== "__current__") {
@@ -231,11 +210,88 @@ export class ProfileGenerator {
 
           if (isSelected) {
             const bName = sanitizeActorName(b.name || `Build_${b.id}`);
-            lines.push(ProfileGenerator.generateActorBlock(b, bName));
+            selectedActors.push({
+              name: bName,
+              build: b,
+              displayName: b.name
+            });
           }
         });
       }
+
+      // If nothing selected, fall back to current editor
+      if (selectedActors.length === 0) {
+        selectedActors.push({
+          name: sanitizeActorName("Current_Editor"),
+          build: state,
+          displayName: "Current Editor"
+        });
+      }
+
+      // The first selected actor is the baseline
+      const baselineActor = selectedActors[0];
+
+      lines.push(`single_actor_batch=1`);
+      lines.push(`report_details=1`);
+      lines.push(`chart_show_relative_difference=1`);
+      lines.push(`relative_difference_base="${baselineActor.name}"`);
+      lines.push(``);
+
+      if (encounterMode === "dungeon") {
+        if (state.selectedRouteType === "custom_imported" && state.customRouteText) {
+          lines.push(`# Encounter: Custom Imported Dungeon Route`);
+          lines.push(state.customRouteText);
+        } else {
+          lines.push(`# Encounter: Dungeon Route - Eternal 62 (Exported from a Wyrmheart 62 route)`);
+          lines.push(`apl/routes/wyrmheart_62_solo.simc`);
+        }
+      } else if (encounterMode === "single_target") {
+        const dur = document.getElementById("input-st-duration")?.value || 360;
+        lines.push(`# Encounter: Single Target (${dur}s)`);
+        lines.push(`max_time=${dur}`);
+        lines.push(`vary_combat_length=0.0`);
+        lines.push(`fight_style=Patchwerk`);
+      } else if (encounterMode === "aoe") {
+        const targets = document.getElementById("input-aoe-targets")?.value || 10;
+        const dur = document.getElementById("input-aoe-duration")?.value || 360;
+        lines.push(`# Encounter: AoE (${targets} Targets, ${dur}s)`);
+        lines.push(`max_time=${dur}`);
+        lines.push(`vary_combat_length=0.0`);
+        lines.push(`fight_style=Patchwerk`);
+        lines.push(`desired_targets=${targets}`);
+      }
+      lines.push(``);
+
+      // Emit each selected actor block
+      selectedActors.forEach(act => {
+        lines.push(ProfileGenerator.generateActorBlock(act.build, act.name));
+      });
     } else {
+      if (encounterMode === "dungeon") {
+        if (state.selectedRouteType === "custom_imported" && state.customRouteText) {
+          lines.push(`# Encounter: Custom Imported Dungeon Route`);
+          lines.push(state.customRouteText);
+        } else {
+          lines.push(`# Encounter: Dungeon Route - Eternal 62 (Exported from a Wyrmheart 62 route)`);
+          lines.push(`apl/routes/wyrmheart_62_solo.simc`);
+        }
+      } else if (encounterMode === "single_target") {
+        const dur = document.getElementById("input-st-duration")?.value || 360;
+        lines.push(`# Encounter: Single Target (${dur}s)`);
+        lines.push(`max_time=${dur}`);
+        lines.push(`vary_combat_length=0.0`);
+        lines.push(`fight_style=Patchwerk`);
+      } else if (encounterMode === "aoe") {
+        const targets = document.getElementById("input-aoe-targets")?.value || 10;
+        const dur = document.getElementById("input-aoe-duration")?.value || 360;
+        lines.push(`# Encounter: AoE (${targets} Targets, ${dur}s)`);
+        lines.push(`max_time=${dur}`);
+        lines.push(`vary_combat_length=0.0`);
+        lines.push(`fight_style=Patchwerk`);
+        lines.push(`desired_targets=${targets}`);
+      }
+      lines.push(``);
+
       // Single Actor Mode
       const pName = state.selectedPlayerName || (state.characterData?.player?.name) || "Hero";
       lines.push(ProfileGenerator.generateActorBlock(state, pName));

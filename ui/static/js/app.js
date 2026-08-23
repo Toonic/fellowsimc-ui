@@ -1,4 +1,5 @@
 import { state } from "./state.js";
+import { ALL_HERO_TALENTS } from "./data/heroes/index.js";
 import { ProfileGenerator } from "./modules/profile.js";
 import { HeroPickerController } from "./modules/hero_picker.js";
 import { StatsController } from "./modules/stats.js";
@@ -10,6 +11,7 @@ import { BuildsController } from "./modules/builds.js";
 class Application {
   constructor() {
     this.state = state;
+    this.state.talentsData = ALL_HERO_TALENTS;
     this.heroPicker = new HeroPickerController(this.state);
     this.statsController = new StatsController(this.state);
     this.gearController = new GearController(this.state);
@@ -20,8 +22,10 @@ class Application {
 
   async init() {
     this.#initTabs();
-    await this.#loadTalentsData();
     this.heroPicker.init();
+    this.heroPicker.onHeroChange = () => {
+      this.builds.renderCompareBuildsList();
+    };
     this.statsController.init();
     this.gearController.init();
     this.builds.init();
@@ -53,18 +57,6 @@ class Application {
         ProfileGenerator.updateEditor(this.state);
       });
     });
-  }
-
-  /** Fetch and cache talents JSON from the server. */
-  async #loadTalentsData() {
-    try {
-      const res = await fetch("/data/talents_data.json");
-      if (res.ok) {
-        this.state.talentsData = await res.json();
-      }
-    } catch (e) {
-      console.warn("Could not load /data/talents_data.json", e);
-    }
   }
 
   /** Wire the simulation mode cards (Dungeon / ST / AoE) to state. */

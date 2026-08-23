@@ -1,5 +1,5 @@
 // Hero Picker and Talent Tree Controller
-import { HERO_DEFINITIONS, HERO_LEGENDARIES } from "../data/heroes.js";
+import { HERO_DEFINITIONS, HERO_LEGENDARIES, MAX_TALENT_POINTS } from "../data/heroes/index.js";
 import { ProfileGenerator } from "./profile.js";
 
 export class HeroPickerController {
@@ -8,15 +8,30 @@ export class HeroPickerController {
   }
 
   init() {
-    const items = document.querySelectorAll("#hero-picker-container .hero-picker-item:not(.disabled)");
-    items.forEach(item => {
-      item.addEventListener("click", () => {
-        const heroKey = item.dataset.hero;
-        if (heroKey && HERO_DEFINITIONS[heroKey]) {
-          this.selectHero(heroKey, true);
+    const container = document.getElementById("hero-picker-container");
+    if (container) {
+      container.innerHTML = "";
+      Object.entries(HERO_DEFINITIONS).forEach(([heroKey, def]) => {
+        const item = document.createElement("div");
+        const isCurrent = (this.state.selectedHero || "rime").toLowerCase() === heroKey;
+        if (!def.implemented) {
+          item.className = "hero-picker-item disabled";
+          item.title = "Not yet implemented in SimC";
+          item.innerHTML = `
+            <span class="hero-chip-name text-${heroKey}">${def.name}</span>
+            <span class="hero-disabled-tag">Not in SimC</span>
+          `;
+        } else {
+          item.className = `hero-picker-item ${isCurrent ? "active" : ""}`;
+          item.dataset.hero = heroKey;
+          item.innerHTML = `<span class="hero-chip-name text-${heroKey}">${def.name}</span>`;
+          item.addEventListener("click", () => {
+            this.selectHero(heroKey, true);
+          });
         }
+        container.appendChild(item);
       });
-    });
+    }
 
     const btnClear = document.getElementById("btn-clear-talents");
     if (btnClear) {
@@ -43,10 +58,10 @@ export class HeroPickerController {
       item.classList.toggle("active", item.dataset.hero === heroKey);
     });
 
-    // Update Primary Stat Label
+    // Update Primary Stat Label dynamically
     const primaryLabel = document.getElementById("label-stat-primary");
-    if (primaryLabel) {
-      primaryLabel.textContent = def.primaryStatLabel;
+    if (primaryLabel && def.primaryStat) {
+      primaryLabel.textContent = def.primaryStat.charAt(0).toUpperCase() + def.primaryStat.slice(1);
     }
 
     // Update Legendary Dropdown
@@ -94,6 +109,9 @@ export class HeroPickerController {
 
     this.renderTalentTree();
     ProfileGenerator.updateEditor(this.state);
+    if (typeof this.onHeroChange === "function") {
+      this.onHeroChange(heroKey);
+    }
   }
 
   renderTalentTree() {
@@ -129,7 +147,8 @@ export class HeroPickerController {
         card.dataset.talentId = t.id;
         card.dataset.pointCost = t.pointCost || 1;
 
-        const iconSrc = t.localIcon || t.iconUrl || "";
+        const iconFile = t.icon || t.filename || (t.localIcon ? t.localIcon.replace("/assets/icons/", "") : "");
+        const iconSrc = iconFile ? `/assets/icons/${iconFile}` : "";
 
         card.innerHTML = `
           <div class="talent-info-group">
@@ -164,7 +183,7 @@ export class HeroPickerController {
     if (isSelected) {
       this.state.selectedTalents.delete(talent.id);
     } else {
-      if (currentSpent + cost <= 14) {
+      if (currentSpent + cost <= MAX_TALENT_POINTS) {
         this.state.selectedTalents.add(talent.id);
       } else {
         const pointsEl = document.getElementById("talent-points-available");
@@ -200,7 +219,7 @@ export class HeroPickerController {
 
   updateTalentDisplay() {
     const totalSpent = this.getTotalTalentPointsSpent();
-    const available = Math.max(0, 14 - totalSpent);
+    const available = Math.max(0, MAX_TALENT_POINTS - totalSpent);
 
     const pointsEl = document.getElementById("talent-points-available");
     if (pointsEl) {

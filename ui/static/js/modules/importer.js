@@ -1,5 +1,5 @@
 // FellowshipLogs Importer Module
-import { HERO_DEFINITIONS } from "../data/heroes.js";
+import { HERO_DEFINITIONS } from "../data/heroes/index.js";
 import { ProfileGenerator } from "./profile.js";
 
 export class LogImporter {

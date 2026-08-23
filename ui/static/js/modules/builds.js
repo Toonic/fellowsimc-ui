@@ -429,62 +429,61 @@ export class BuildsController {
     if (!container) return;
     container.innerHTML = "";
 
-    // 1. Baseline Card: Current Editor
+    // Collect all candidate builds: Current Editor + Saved Builds
     const curHeroKey = (this.state.selectedHero || "rime").toLowerCase();
-    const curRow = document.createElement("label");
-    curRow.className = "compare-build-row selected";
-    curRow.style.cursor = "default";
-    curRow.innerHTML = `
-      <input type="checkbox" class="compare-build-checkbox" value="__current__" checked disabled>
-      <div class="compare-row-content">
-        <span class="badge-role badge-${curHeroKey}">${curHeroKey.toUpperCase()}</span>
-        <strong class="compare-build-title">Current Editor (Baseline)</strong>
-      </div>
-    `;
-    container.appendChild(curRow);
+    const allItems = [
+      {
+        id: "__current__",
+        name: "Current Editor",
+        heroKey: curHeroKey,
+        isCurrent: true
+      },
+      ...this.state.savedBuilds.map(b => ({
+        id: b.id,
+        name: b.name,
+        heroKey: (b.hero || "rime").toLowerCase(),
+        isCurrent: false
+      }))
+    ];
 
-    // 2. Render all saved builds
-    if (this.state.savedBuilds.length === 0) {
-      const notice = document.createElement("div");
-      notice.className = "empty-state-notice";
-      notice.style.gridColumn = "1 / -1";
-      notice.innerHTML = "<p>No saved builds yet. Save builds in the <strong>Hero & Loadout</strong> tab to compare variants against your Current Editor baseline!</p>";
-      container.appendChild(notice);
-      return;
-    }
+    // Find the first selected item to be marked as baseline
+    const firstSelectedId = allItems.find(item => this.state.selectedCompareBuildIds.has(item.id))?.id;
 
-    this.state.savedBuilds.forEach(build => {
-      const isChecked = this.state.selectedCompareBuildIds.has(build.id);
+    allItems.forEach(item => {
+      const isChecked = this.state.selectedCompareBuildIds.has(item.id);
+      const isBaseline = isChecked && item.id === firstSelectedId;
       const row = document.createElement("label");
       row.className = `compare-build-row ${isChecked ? "selected" : ""}`;
-      const heroKey = (build.hero || "rime").toLowerCase();
 
       row.innerHTML = `
-        <input type="checkbox" class="compare-build-checkbox" value="${build.id}" ${isChecked ? "checked" : ""}>
+        <input type="checkbox" class="compare-build-checkbox" value="${item.id}" ${isChecked ? "checked" : ""}>
         <div class="compare-row-content">
-          <span class="badge-role badge-${heroKey}">${heroKey.toUpperCase()}</span>
-          <strong class="compare-build-title">${build.name}</strong>
+          <span class="badge-role badge-${item.heroKey}">${item.heroKey.toUpperCase()}</span>
+          <strong class="compare-build-title">${item.name}</strong>
+          ${isBaseline ? `<span class="badge-role" style="background: rgba(176, 142, 88, 0.2); color: var(--text-gold); border: 1px solid var(--border-gold); margin-left: auto;">Baseline</span>` : ""}
         </div>
       `;
 
       const chk = row.querySelector("input");
       chk?.addEventListener("change", (e) => {
         if (e.target.checked) {
-          this.state.selectedCompareBuildIds.add(build.id);
-          row.classList.add("selected");
-          this.state.enableCompare = true;
-          const chkEnable = document.getElementById("check-enable-compare");
-          if (chkEnable) chkEnable.checked = true;
-          const compareBox = document.getElementById("compare-builds-box");
-          if (compareBox) compareBox.classList.remove("disabled-box");
+          this.state.selectedCompareBuildIds.add(item.id);
         } else {
-          this.state.selectedCompareBuildIds.delete(build.id);
-          row.classList.remove("selected");
+          this.state.selectedCompareBuildIds.delete(item.id);
         }
+        this.renderCompareBuildsList();
         ProfileGenerator.updateEditor(this.state);
       });
 
       container.appendChild(row);
     });
+
+    if (this.state.savedBuilds.length === 0 && !this.state.selectedCompareBuildIds.has("__current__")) {
+      const notice = document.createElement("div");
+      notice.className = "empty-state-notice";
+      notice.style.gridColumn = "1 / -1";
+      notice.innerHTML = "<p>No builds selected. Select Current Editor or save builds in <strong>Hero & Loadout</strong> to compare them!</p>";
+      container.appendChild(notice);
+    }
   }
 }
