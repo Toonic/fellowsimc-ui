@@ -167,6 +167,8 @@ export class UpgradeFinderController {
 
     ALL_BLESSINGS.forEach(b => {
       if (tierMode === "plus_one") {
+        // "+1 to Current Build": Current_Editor's baseline still carries the real
+        // loadout, so build on top of it - keep every existing blessing, bump this one.
         const counts = { ...curBlessings };
         counts[b.id] = Math.min(4, (counts[b.id] || 0) + 1);
         const affixList = [];
@@ -177,6 +179,9 @@ export class UpgradeFinderController {
         lines.push(`copy="${b.name} (+1 -> ${counts[b.id]}/4)","Current_Editor"`);
         lines.push(`trinket2=relic2,affixes=${affixList.join("/")}`);
       } else if (tierMode === "all_tiers") {
+        // Not "+1 to Current Build": Current_Editor's baseline is generated bare
+        // (trinket2=relic2, no affixes) for this tier, so we only need to state
+        // the affixes we actually want to test - nothing else to strip.
         for (let r = 1; r <= 4; r++) {
           const affixList = [];
           for (let i = 0; i < r; i++) affixList.push(b.id);
@@ -201,29 +206,26 @@ export class UpgradeFinderController {
     lines.push(`# ====================================================================`);
 
     const traitMode = state.upgradeTraitTier || "plus_one";
+
     ALL_WEAPON_TRAITS.forEach(tr => {
       if (traitMode === "plus_one") {
+        // "+1 to Current Build": baseline still carries the real trait ranks.
         const curRank = state.traitCounts?.[tr.id] || 0;
         const newRank = curRank + 1;
         lines.push(``);
         lines.push(`copy="${tr.name} (+1 -> R${newRank})","Current_Editor"`);
         lines.push(`weapon_trait.${tr.id}=${newRank}`);
-      } else if (traitMode === "all_ranks") {
-        for (let r = 1; r <= 4; r++) {
-          lines.push(``);
-          lines.push(`copy="${tr.name} (R${r})","Current_Editor"`);
-          ALL_WEAPON_TRAITS.forEach(other => {
-            if (other.id !== tr.id) lines.push(`weapon_trait.${other.id}=0`);
-          });
-          lines.push(`weapon_trait.${tr.id}=${r}`);
-        }
       } else {
-        lines.push(``);
-        lines.push(`copy="${tr.name} (4/4 Max)","Current_Editor"`);
-        ALL_WEAPON_TRAITS.forEach(other => {
-          if (other.id !== tr.id) lines.push(`weapon_trait.${other.id}=0`);
+        // Not "+1 to Current Build": baseline is generated with no weapon_trait
+        // lines at all for this tier, so we only need to state the trait we're
+        // testing - nothing else to strip.
+        const ranks = traitMode === "all_ranks" ? [1, 2, 3, 4] : [4];
+        ranks.forEach(r => {
+          const label = traitMode === "all_ranks" ? `${tr.name} (R${r})` : `${tr.name} (4/4 Max)`;
+          lines.push(``);
+          lines.push(`copy="${label}","Current_Editor"`);
+          lines.push(`weapon_trait.${tr.id}=${r}`);
         });
-        lines.push(`weapon_trait.${tr.id}=4`);
       }
     });
     return lines;
@@ -237,19 +239,19 @@ export class UpgradeFinderController {
     lines.push(`# ====================================================================`);
 
     const setMode = state.upgradeSetTier || "add_one";
-    const currentSets = state.activeSets instanceof Set ? Array.from(state.activeSets) : (state.activeSets || []);
 
     ALL_GEAR_SETS.forEach(gs => {
       if (setMode === "add_one") {
+        // "+1 to Current Build": baseline still carries the real active sets.
         lines.push(``);
         lines.push(`copy="Set: ${gs.name} (+1)","Current_Editor"`);
         lines.push(`sets.${gs.id}=1`);
       } else {
+        // Not "+1 to Current Build": baseline is generated with no sets lines
+        // at all for this tier, so we only need to state the set we're testing -
+        // nothing else to strip.
         lines.push(``);
         lines.push(`copy="Solo Set: ${gs.name}","Current_Editor"`);
-        currentSets.forEach(cs => {
-          if (cs !== gs.id) lines.push(`sets.${cs}=0`);
-        });
         lines.push(`sets.${gs.id}=1`);
       }
     });
@@ -265,7 +267,7 @@ export class UpgradeFinderController {
 
     const heroKey = (state.selectedHero || "rime").toLowerCase();
     const heroTree = state.talentsData?.[heroKey] || state.talentsData?.["rime"];
-    
+
     if (heroTree && heroTree.tiers) {
       let currentSpent = 0;
       const currentSelected = state.selectedTalents instanceof Set ? Array.from(state.selectedTalents) : (state.selectedTalents || []);

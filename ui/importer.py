@@ -425,7 +425,6 @@ def generate_simc_profile(character_data, options=None):
     set_counts = {}
     weapon_name = "chronoshift"
     
-    placed_blessing_counts = {}
     for item in gear:
         item_name = sanitize_name(item.get("name", "item"))
         slot_idx = item.get("slot", 0)
@@ -448,23 +447,16 @@ def generate_simc_profile(character_data, options=None):
             rank = t.get("rank", 1)
             trait_counts[simc_tname] = trait_counts.get(simc_tname, 0) + rank
 
-        # Blessings (Affixes)
-        item_affixes = []
+        # Blessings
         for b in item.get("blessings", []):
             bname = sanitize_name(b.get("name", ""))
             lvl = b.get("level", 1)
             if bname:
                 blessing_counts[bname] = blessing_counts.get(bname, 0) + lvl
-                for _ in range(lvl):
-                    if placed_blessing_counts.get(bname, 0) < 4:
-                        item_affixes.append(bname)
-                        placed_blessing_counts[bname] = placed_blessing_counts.get(bname, 0) + 1
                 if bname not in blessings_list:
                     blessings_list.append(bname)
-                    
-        if item_affixes:
-            gear_items_output.append(f"{slot_name}={item_name},affixes={'/'.join(item_affixes)}")
-            
+
+        gear_items_output.append(f"{slot_name}={item_name}")
         # Set Detection
         if item.get("set"):
             raw_set = item.get("set")
@@ -708,13 +700,25 @@ def generate_simc_profile(character_data, options=None):
         lines.append(f"weapon_trait.{tname}={trank}")
     lines.append("")
     
-    # Gear Items & Blessings
+    # Gear Items (without affixes — affixes all go on trinket2/relic2)
     if gear_items_output:
-        lines.append(f"# Gear Items & Blessings (Affixes)")
+        lines.append(f"# Gear Items")
         for g_line in gear_items_output:
             lines.append(g_line)
         lines.append("")
-        
+
+    # All Blessings consolidated on trinket2=relic2
+    if blessings_list:
+        all_blessing_affixes = []
+        for bname, count in blessing_counts.items():
+            capped = min(4, max(0, count))
+            for _ in range(capped):
+                all_blessing_affixes.append(bname)
+        if all_blessing_affixes:
+            lines.append(f"# Blessings (All affixes on Relic 2)")
+            lines.append(f"trinket2=relic2,affixes={'/'.join(all_blessing_affixes)}")
+            lines.append("")
+
     # Talents
     if talents:
         lines.append(f"# Talents")

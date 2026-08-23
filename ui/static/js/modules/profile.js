@@ -9,7 +9,20 @@ import { UpgradeFinderController } from "./upgrade_finder.js";
 export { applyFellowDR, calculateSheetStats };
 
 export class ProfileGenerator {
-  static generateActorBlock(build, actorName) {
+  /**
+   * @param {object} build
+   * @param {string} actorName
+   * @param {object} [opts]
+   * @param {boolean} [opts.stripBlessings] - Omit blessing affixes from trinket2 (bare "trinket2=relic2").
+   *   Used only for the Current_Editor baseline while a non-"+1" Blessings Finder tier is active,
+   *   since every candidate copy supplies its own full affix list.
+   * @param {boolean} [opts.stripTraits] - Omit all weapon_trait.* lines entirely.
+   *   Used only for the Current_Editor baseline while a non-"+1" Traits Finder tier is active.
+   * @param {boolean} [opts.stripSets] - Omit all sets.* lines entirely.
+   *   Used only for the Current_Editor baseline while a non-"+1" Sets Finder tier is active.
+   */
+  static generateActorBlock(build, actorName, opts = {}) {
+    const { stripBlessings = false, stripTraits = false, stripSets = false } = opts;
     const heroKey = (build.hero || build.selectedHero || "rime").toLowerCase();
     const heroDef = HERO_DEFINITIONS[heroKey] || HERO_DEFINITIONS["rime"];
     const lines = [];
@@ -76,8 +89,11 @@ export class ProfileGenerator {
     // Sets & Legendary
     lines.push(``);
     lines.push(`# Active Sets & Legendary`);
-    const activeSets = build.activeSets instanceof Set ? Array.from(build.activeSets) : (build.activeSets || []);
-    if (activeSets.length > 0) {
+    if (stripSets) {
+      lines.push(`# (Sets stripped - Sets Finder is active on a non-"+1" tier;`);
+      lines.push(`#  each candidate below supplies its own set.)`);
+    } else {
+      const activeSets = build.activeSets instanceof Set ? Array.from(build.activeSets) : (build.activeSets || []);
       activeSets.forEach(setId => {
         lines.push(`sets.${setId}=1`);
       });
@@ -90,16 +106,19 @@ export class ProfileGenerator {
     // Weapon & Weapon Traits
     lines.push(`# Equipped Weapon & Weapon Traits`);
     lines.push(`weapon=${build.weapon || "chronoshift"}`);
-    if (build.traitCounts) {
+    if (stripTraits) {
+      lines.push(`# (Weapon traits stripped - Traits Finder is active on a non-"+1" tier;`);
+      lines.push(`#  each candidate below supplies its own trait.)`);
+    } else if (build.traitCounts) {
       for (const [tname, trank] of Object.entries(build.traitCounts)) {
         lines.push(`weapon_trait.${tname}=${trank}`);
       }
     }
     lines.push(``);
 
-    // Gear Items & Blessings (Affixes) - Evenly distributed across gear slots
+    // Blessings — all consolidated onto trinket2=relic2
     const activeBlessingList = [];
-    if (build.blessingCounts) {
+    if (!stripBlessings && build.blessingCounts) {
       for (const [bid, count] of Object.entries(build.blessingCounts)) {
         const cappedCount = Math.min(4, Math.max(0, count));
         for (let i = 0; i < cappedCount; i++) {
@@ -108,46 +127,27 @@ export class ProfileGenerator {
       }
     }
 
-    const standardSlots = [
-      "head", "shoulder", "chest", "wrists", "hands", "legs",
-      "feet", "finger1", "finger2", "neck", "back", "main_hand"
-    ];
-
-    if (activeBlessingList.length > 0) {
-      lines.push(`# Gear Items & Blessings (Affixes)`);
-      const slotMap = {};
-      standardSlots.forEach(s => { slotMap[s] = []; });
-
-      let slotIdx = 0;
-      activeBlessingList.forEach(blessing => {
-        let placed = false;
-        for (let i = 0; i < standardSlots.length; i++) {
-          const s = standardSlots[(slotIdx + i) % standardSlots.length];
-          if (slotMap[s].length < 2) {
-            slotMap[s].push(blessing);
-            slotIdx = (slotIdx + i + 1) % standardSlots.length;
-            placed = true;
-            break;
-          }
-        }
-        if (!placed) {
-          const s = standardSlots[slotIdx % standardSlots.length];
-          slotMap[s].push(blessing);
-          slotIdx = (slotIdx + 1) % standardSlots.length;
-        }
-      });
-
-      standardSlots.forEach(slot => {
-        const affs = slotMap[slot];
-        if (affs && affs.length > 0) {
-          const itemName = build.gearItemNames?.[slot] || `${slot}_item`;
-          lines.push(`${slot}=${itemName},affixes=${affs.join("/")}`);
-        }
+    // Gear Items (named slots, no affixes — affixes go on relic2)
+    if (build.gearAffixes && build.gearAffixes.length > 0) {
+      lines.push(`# Gear Items`);
+      build.gearAffixes.forEach(g => lines.push(g));
+      lines.push(``);
+    } else if (build.gearItemNames && Object.keys(build.gearItemNames).length > 0) {
+      lines.push(`# Gear Items`);
+      Object.entries(build.gearItemNames).forEach(([slot, name]) => {
+        lines.push(`${slot}=${name}`);
       });
       lines.push(``);
-    } else if (build.gearAffixes && build.gearAffixes.length > 0) {
-      lines.push(`# Gear Items & Blessings (Affixes)`);
-      build.gearAffixes.forEach(g => lines.push(g));
+    }
+
+    if (stripBlessings) {
+      lines.push(`# Blessings (Stripped - Blessings Finder is active on a non-"+1" tier;`);
+      lines.push(`#  each candidate below supplies its own full affix list.)`);
+      lines.push(`trinket2=relic2`);
+      lines.push(``);
+    } else if (activeBlessingList.length > 0) {
+      lines.push(`# Blessings (All affixes on Relic 2)`);
+      lines.push(`trinket2=relic2,affixes=${activeBlessingList.join("/")}`);
       lines.push(``);
     }
 
@@ -215,8 +215,16 @@ export class ProfileGenerator {
       }
       lines.push(``);
 
+      // Only strip the baseline's own blessings/traits/sets when the matching
+      // Finder is active AND its tier is NOT "+1 to Current Build" - that mode
+      // still needs the real current loadout since candidates build on top of it.
+      const upgradeType = state.upgradeType || "stats";
+      const stripBlessings = upgradeType === "blessings" && (state.upgradeBlessingTier || "plus_one") !== "plus_one";
+      const stripTraits = upgradeType === "traits" && (state.upgradeTraitTier || "plus_one") !== "plus_one";
+      const stripSets = upgradeType === "sets" && (state.upgradeSetTier || "add_one") !== "add_one";
+
       // Baseline Actor (Current Editor)
-      lines.push(ProfileGenerator.generateActorBlock(state, "Current_Editor"));
+      lines.push(ProfileGenerator.generateActorBlock(state, "Current_Editor", { stripBlessings, stripTraits, stripSets }));
 
       // Candidate Upgrade Actors
       lines.push(...UpgradeFinderController.generateUpgradeActors(state));
