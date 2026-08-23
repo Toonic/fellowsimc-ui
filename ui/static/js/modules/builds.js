@@ -2,16 +2,16 @@
 import { ProfileGenerator } from "./profile.js";
 
 export class BuildsController {
-  constructor(state, heroController, gearController, statsController) {
+  constructor(state, heroController, gearController, statsController, compareController) {
     this.state = state;
     this.heroController = heroController;
     this.gearController = gearController;
     this.statsController = statsController;
+    this.compareController = compareController;
   }
 
   init() {
     this.populateLoadDropdown();
-    this.renderCompareBuildsList();
 
     const inputName = document.getElementById("input-build-name");
     const selectLoad = document.getElementById("select-load-build");
@@ -76,7 +76,7 @@ export class BuildsController {
           if (inputName) inputName.value = currentBuild.name;
           this.state.saveBuildsToStorage();
           this.populateLoadDropdown();
-          this.renderCompareBuildsList();
+          if (this.compareController) this.compareController.renderCompareBuildsList();
           ProfileGenerator.updateEditor(this.state);
         }
       });
@@ -131,50 +131,6 @@ export class BuildsController {
     }
 
     this.syncWithServer();
-
-    // Compare Mode Toggle & Controls
-    const chkEnableCompare = document.getElementById("check-enable-compare");
-    const compareBox = document.getElementById("compare-builds-box");
-    if (chkEnableCompare) {
-      chkEnableCompare.checked = this.state.enableCompare;
-      if (compareBox) compareBox.classList.toggle("disabled-box", !this.state.enableCompare);
-
-      chkEnableCompare.addEventListener("change", (e) => {
-        this.state.enableCompare = e.target.checked;
-        if (compareBox) compareBox.classList.toggle("disabled-box", !e.target.checked);
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    const btnSelectAllCompare = document.getElementById("btn-compare-select-all");
-    if (btnSelectAllCompare) {
-      btnSelectAllCompare.addEventListener("click", () => {
-        this.state.savedBuilds.forEach(b => this.state.selectedCompareBuildIds.add(b.id));
-        this.state.enableCompare = true;
-        if (chkEnableCompare) chkEnableCompare.checked = true;
-        if (compareBox) compareBox.classList.remove("disabled-box");
-        this.renderCompareBuildsList();
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    const btnClearCompare = document.getElementById("btn-compare-clear-all");
-    if (btnClearCompare) {
-      btnClearCompare.addEventListener("click", () => {
-        this.state.selectedCompareBuildIds.clear();
-        this.renderCompareBuildsList();
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    const chkIncludeCurrent = document.getElementById("chk-compare-include-current");
-    if (chkIncludeCurrent) {
-      chkIncludeCurrent.checked = this.state.includeCurrentInCompare;
-      chkIncludeCurrent.addEventListener("change", (e) => {
-        this.state.includeCurrentInCompare = e.target.checked;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
   }
 
   async syncWithServer() {
@@ -231,7 +187,7 @@ export class BuildsController {
     this.state.activeBuildName = snapshot.name;
     this.state.saveBuildsToStorage();
     this.populateLoadDropdown(snapshot.id);
-    this.renderCompareBuildsList();
+    if (this.compareController) this.compareController.renderCompareBuildsList();
     ProfileGenerator.updateEditor(this.state);
 
     // Persist as .simc file to builds/ on disk
@@ -310,7 +266,7 @@ export class BuildsController {
     }
     this.state.saveBuildsToStorage();
     this.populateLoadDropdown();
-    this.renderCompareBuildsList();
+    if (this.compareController) this.compareController.renderCompareBuildsList();
     ProfileGenerator.updateEditor(this.state);
 
     if (buildName) {
@@ -346,7 +302,7 @@ export class BuildsController {
     if (inputName) inputName.value = copy.name;
 
     this.populateLoadDropdown(copy.id);
-    this.renderCompareBuildsList();
+    if (this.compareController) this.compareController.renderCompareBuildsList();
     ProfileGenerator.updateEditor(this.state);
 
     // Save copy to disk
@@ -390,7 +346,7 @@ export class BuildsController {
           });
           this.state.saveBuildsToStorage();
           this.populateLoadDropdown();
-          this.renderCompareBuildsList();
+          if (this.compareController) this.compareController.renderCompareBuildsList();
           ProfileGenerator.updateEditor(this.state);
           alert(`Successfully imported ${imported.length} builds.`);
         } else {
@@ -421,69 +377,6 @@ export class BuildsController {
 
     if (this.state.currentLoadedBuildId) {
       select.value = this.state.currentLoadedBuildId;
-    }
-  }
-
-  renderCompareBuildsList() {
-    const container = document.getElementById("compare-builds-checklist");
-    if (!container) return;
-    container.innerHTML = "";
-
-    // Collect all candidate builds: Current Editor + Saved Builds
-    const curHeroKey = (this.state.selectedHero || "rime").toLowerCase();
-    const allItems = [
-      {
-        id: "__current__",
-        name: "Current Editor",
-        heroKey: curHeroKey,
-        isCurrent: true
-      },
-      ...this.state.savedBuilds.map(b => ({
-        id: b.id,
-        name: b.name,
-        heroKey: (b.hero || "rime").toLowerCase(),
-        isCurrent: false
-      }))
-    ];
-
-    // Find the first selected item to be marked as baseline
-    const firstSelectedId = allItems.find(item => this.state.selectedCompareBuildIds.has(item.id))?.id;
-
-    allItems.forEach(item => {
-      const isChecked = this.state.selectedCompareBuildIds.has(item.id);
-      const isBaseline = isChecked && item.id === firstSelectedId;
-      const row = document.createElement("label");
-      row.className = `compare-build-row ${isChecked ? "selected" : ""}`;
-
-      row.innerHTML = `
-        <input type="checkbox" class="compare-build-checkbox" value="${item.id}" ${isChecked ? "checked" : ""}>
-        <div class="compare-row-content">
-          <span class="badge-role badge-${item.heroKey}">${item.heroKey.toUpperCase()}</span>
-          <strong class="compare-build-title">${item.name}</strong>
-          ${isBaseline ? `<span class="badge-role" style="background: rgba(176, 142, 88, 0.2); color: var(--text-gold); border: 1px solid var(--border-gold); margin-left: auto;">Baseline</span>` : ""}
-        </div>
-      `;
-
-      const chk = row.querySelector("input");
-      chk?.addEventListener("change", (e) => {
-        if (e.target.checked) {
-          this.state.selectedCompareBuildIds.add(item.id);
-        } else {
-          this.state.selectedCompareBuildIds.delete(item.id);
-        }
-        this.renderCompareBuildsList();
-        ProfileGenerator.updateEditor(this.state);
-      });
-
-      container.appendChild(row);
-    });
-
-    if (this.state.savedBuilds.length === 0 && !this.state.selectedCompareBuildIds.has("__current__")) {
-      const notice = document.createElement("div");
-      notice.className = "empty-state-notice";
-      notice.style.gridColumn = "1 / -1";
-      notice.innerHTML = "<p>No builds selected. Select Current Editor or save builds in <strong>Hero & Loadout</strong> to compare them!</p>";
-      container.appendChild(notice);
     }
   }
 }

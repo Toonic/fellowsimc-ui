@@ -8,6 +8,7 @@ import subprocess
 import threading
 import time
 import re
+import queue
 import webbrowser
 
 # Add current directory to path
@@ -25,6 +26,197 @@ if not os.path.exists(RUN_DIR):
 
 BUILDS_DIR = os.path.join(ROOT_DIR, "builds")
 os.makedirs(BUILDS_DIR, exist_ok=True)
+
+class SimulationManager:
+    def __init__(self):
+        self.lock = threading.RLock()
+        self.proc = None
+        self.running = False
+        self.start_time = 0.0
+        self.log_history = []
+        self.subscribers = set()
+        self.last_result = None
+
+    def is_running(self):
+        with self.lock:
+            if self.running and self.proc and self.proc.poll() is None:
+                return True
+            self.running = False
+            return False
+
+    def get_status(self):
+        with self.lock:
+            running = self.running and self.proc and self.proc.poll() is None
+            if not running:
+                self.running = False
+            return {
+                "running": running,
+                "elapsed_seconds": round(time.time() - self.start_time, 2) if running else 0,
+                "log_count": len(self.log_history),
+                "last_result": self.last_result
+            }
+
+    def subscribe(self, q):
+        with self.lock:
+            self.subscribers.add(q)
+
+    def unsubscribe(self, q):
+        with self.lock:
+            self.subscribers.discard(q)
+
+    def broadcast(self, event_type, payload):
+        with self.lock:
+            if event_type == "log":
+                self.log_history.append(payload)
+                if len(self.log_history) > 250:
+                    self.log_history.pop(0)
+            elif event_type == "done":
+                self.last_result = payload
+                self.running = False
+
+            for q in list(self.subscribers):
+                try:
+                    q.put_nowait((event_type, payload))
+                except Exception:
+                    pass
+
+    def start_sim(self, profile_text, run_dir, root_dir):
+        with self.lock:
+            if self.running and self.proc and self.proc.poll() is None:
+                return False, "A simulation is already running."
+
+            self.running = True
+            self.start_time = time.time()
+            self.log_history = []
+            self.last_result = None
+
+            sim_file = os.path.join(run_dir, "custom_sim.simc")
+            with open(sim_file, "w", encoding="utf-8") as f:
+                f.write(profile_text)
+
+            simc_exe = os.path.join(run_dir, "simc.exe")
+            if not os.path.exists(simc_exe):
+                simc_exe = os.path.join(root_dir, "simc.exe")
+
+            if not os.path.exists(simc_exe):
+                self.running = False
+                return False, f"simc.exe not found at {simc_exe}."
+
+            cmd = [simc_exe, "custom_sim.simc", "html=latest_sim.html", "output=latest_sim.txt"]
+            try:
+                self.proc = subprocess.Popen(cmd, cwd=run_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            except Exception as e:
+                self.running = False
+                return False, f"Failed to start simc: {e}"
+
+            worker = threading.Thread(target=self._worker_loop, args=(self.proc, run_dir, self.start_time), daemon=True)
+            worker.start()
+            return True, None
+
+    def stop_sim(self):
+        with self.lock:
+            if self.running and self.proc:
+                try:
+                    self.proc.terminate()
+                    self.proc.kill()
+                except Exception:
+                    pass
+                self.running = False
+                payload = {
+                    "success": False,
+                    "return_code": -1,
+                    "elapsed_seconds": round(time.time() - self.start_time, 2),
+                    "mean_dps": 0,
+                    "players": [],
+                    "report": "[Simulation stopped by user]",
+                    "has_html": False,
+                    "stopped": True
+                }
+                self.broadcast("done", payload)
+                return True
+            return False
+
+    def _worker_loop(self, proc, run_dir, start_time):
+        buf = ""
+        while True:
+            char = proc.stdout.read(1)
+            if not char and proc.poll() is not None:
+                if buf:
+                    self.broadcast("log", {"text": buf, "eol": "\n"})
+                break
+            if char == "\r":
+                if buf:
+                    self.broadcast("log", {"text": buf, "eol": "\r"})
+                    buf = ""
+            elif char == "\n":
+                if buf:
+                    self.broadcast("log", {"text": buf, "eol": "\n"})
+                    buf = ""
+            else:
+                buf += char
+
+        with self.lock:
+            if not self.running:
+                return  # Was stopped manually
+
+        elapsed = time.time() - start_time
+        txt_file = os.path.join(run_dir, "latest_sim.txt")
+        html_file = os.path.join(run_dir, "latest_sim.html")
+
+        txt_content = ""
+        if os.path.exists(txt_file):
+            try:
+                with open(txt_file, "r", encoding="utf-8", errors="ignore") as f:
+                    txt_content = f.read()
+            except Exception:
+                pass
+
+        mean_dps = 0.0
+        players_list = []
+        player_pattern = re.compile(
+            r"Player:\s*([^\n\r]+?)\s+[^\s]+\s+[^\s]+\s+[^\s]+\s+\d+\s*\n\s*DPS=([\d\.]+)(?:\s+DPS-Error=([\d\.]+)/([\d\.]+)%)?(?:\s+DPS-Range=([\d\.]+)/([\d\.]+)%)?",
+            re.MULTILINE
+        )
+        for pm in player_pattern.finditer(txt_content):
+            p_name = pm.group(1).strip()
+            p_dps = float(pm.group(2))
+            p_err = float(pm.group(3)) if pm.group(3) else 0.0
+            p_err_pct = float(pm.group(4)) if pm.group(4) else 0.0
+            p_range = float(pm.group(5)) if pm.group(5) else 0.0
+            p_range_pct = float(pm.group(6)) if pm.group(6) else 0.0
+            players_list.append({
+                "name": p_name,
+                "dps": p_dps,
+                "error": p_err,
+                "error_pct": p_err_pct,
+                "range": p_range,
+                "range_pct": p_range_pct
+            })
+
+        players_list.sort(key=lambda x: x["dps"], reverse=True)
+        if players_list:
+            mean_dps = players_list[0]["dps"]
+        else:
+            m1 = re.search(r"DPS[=:]\s*([\d\.]+)", txt_content)
+            if m1:
+                mean_dps = float(m1.group(1))
+            else:
+                m2 = re.search(r"DPS Ranking:\s*\n\s*([\d\.]+)", txt_content)
+                if m2:
+                    mean_dps = float(m2.group(1))
+
+        done_payload = {
+            "success": proc.returncode == 0,
+            "return_code": proc.returncode,
+            "elapsed_seconds": round(elapsed, 2),
+            "mean_dps": mean_dps,
+            "players": players_list,
+            "report": txt_content,
+            "has_html": os.path.exists(html_file)
+        }
+        self.broadcast("done", done_payload)
+
+SIM_MANAGER = SimulationManager()
 
 HERO_CLASS_KEYS = ["rime", "mara", "gunde", "vigor", "sune", "meiko", "mosse", "warmaster", "eldrane", "ink", "lisa"]
 
@@ -179,6 +371,55 @@ class FellowSimcHandler(http.server.BaseHTTPRequestHandler):
                 "client_secret": cfg.get("client_secret", ""),
                 "has_secret": bool(cfg.get("client_secret"))
             })
+            return
+
+        elif url.path == "/api/simulation/status":
+            self.send_json(200, SIM_MANAGER.get_status())
+            return
+
+        elif url.path in ["/api/simulation/stream", "/api/simulate"]:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.close_connection = True
+
+            def send_event(event_type, payload):
+                try:
+                    msg = f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+                    self.wfile.write(msg.encode("utf-8"))
+                    self.wfile.flush()
+                except Exception:
+                    return False
+                return True
+
+            with SIM_MANAGER.lock:
+                for entry in list(SIM_MANAGER.log_history):
+                    if not send_event("log", entry):
+                        return
+                if not SIM_MANAGER.is_running() and SIM_MANAGER.last_result:
+                    send_event("done", SIM_MANAGER.last_result)
+                    return
+
+            client_queue = queue.Queue()
+            SIM_MANAGER.subscribe(client_queue)
+            try:
+                while True:
+                    try:
+                        event_type, payload = client_queue.get(timeout=1.0)
+                        if not send_event(event_type, payload):
+                            break
+                        if event_type == "done":
+                            break
+                    except queue.Empty:
+                        if not SIM_MANAGER.is_running():
+                            if SIM_MANAGER.last_result:
+                                send_event("done", SIM_MANAGER.last_result)
+                            break
+            finally:
+                SIM_MANAGER.unsubscribe(client_queue)
             return
 
         elif url.path == "/api/builds":
@@ -409,124 +650,27 @@ hr {
                 generated = importer.generate_simc_profile(char_data, options)
                 self.send_json(200, generated)
 
+            elif url.path in ["/api/simulation/stop", "/api/simulate/stop"]:
+                stopped = SIM_MANAGER.stop_sim()
+                self.send_json(200, {"success": True, "stopped": stopped})
+                return
+
             elif url.path == "/api/simulate":
                 profile_text = data.get("profile_text", "")
                 if not profile_text:
                     self.send_json(400, {"error": "Empty profile text."})
                     return
 
-                sim_file = os.path.join(RUN_DIR, "custom_sim.simc")
-                with open(sim_file, "w", encoding="utf-8") as f:
-                    f.write(profile_text)
-
-                html_file = os.path.join(RUN_DIR, "latest_sim.html")
-                txt_file = os.path.join(RUN_DIR, "latest_sim.txt")
-
-                simc_exe = os.path.join(RUN_DIR, "simc.exe")
-                if not os.path.exists(simc_exe):
-                    simc_exe = os.path.join(ROOT_DIR, "simc.exe")
-
-                if not os.path.exists(simc_exe):
-                    self.send_json(500, {"error": f"simc.exe not found at {simc_exe}."})
+                if SIM_MANAGER.is_running():
+                    self.send_json(200, {"status": "running", "already_running": True})
                     return
 
-                # Send SSE headers for real-time live streaming
-                self.send_response(200)
-                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Connection", "close")
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.end_headers()
-                self.close_connection = True
+                ok, err = SIM_MANAGER.start_sim(profile_text, RUN_DIR, ROOT_DIR)
+                if not ok:
+                    self.send_json(500, {"error": err})
+                    return
 
-                def send_event(event_type, payload):
-                    try:
-                        msg = f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
-                        self.wfile.write(msg.encode("utf-8"))
-                        self.wfile.flush()
-                    except Exception:
-                        pass
-
-                cmd = [simc_exe, "custom_sim.simc", "html=latest_sim.html", "output=latest_sim.txt"]
-                start_time = time.time()
-                proc = subprocess.Popen(cmd, cwd=RUN_DIR, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
-
-                buf = ""
-                while True:
-                    char = proc.stdout.read(1)
-                    if not char and proc.poll() is not None:
-                        if buf:
-                            send_event("log", {"text": buf, "eol": "\n"})
-                        break
-                    if char == "\r":
-                        if buf:
-                            send_event("log", {"text": buf, "eol": "\r"})
-                            buf = ""
-                    elif char == "\n":
-                        if buf:
-                            send_event("log", {"text": buf, "eol": "\n"})
-                            buf = ""
-                    else:
-                        buf += char
-
-                elapsed = time.time() - start_time
-
-                txt_content = ""
-                if os.path.exists(txt_file):
-                    try:
-                        with open(txt_file, "r", encoding="utf-8", errors="ignore") as f:
-                            txt_content = f.read()
-                    except Exception:
-                        pass
-
-                mean_dps = 0.0
-                players_list = []
-                
-                # Parse multi-player details from txt report
-                # Pattern: Player: <name> <spec> <class> <race> <level>\n  DPS=<val> DPS-Error=<err>/<err_pct>% DPS-Range=<range>/<range_pct>%
-                player_pattern = re.compile(
-                    r"Player:\s*([^\n\r]+?)\s+[^\s]+\s+[^\s]+\s+[^\s]+\s+\d+\s*\n\s*DPS=([\d\.]+)(?:\s+DPS-Error=([\d\.]+)/([\d\.]+)%)?(?:\s+DPS-Range=([\d\.]+)/([\d\.]+)%)?",
-                    re.MULTILINE
-                )
-                for pm in player_pattern.finditer(txt_content):
-                    p_name = pm.group(1).strip()
-                    p_dps = float(pm.group(2))
-                    p_err = float(pm.group(3)) if pm.group(3) else 0.0
-                    p_err_pct = float(pm.group(4)) if pm.group(4) else 0.0
-                    p_range = float(pm.group(5)) if pm.group(5) else 0.0
-                    p_range_pct = float(pm.group(6)) if pm.group(6) else 0.0
-                    players_list.append({
-                        "name": p_name,
-                        "dps": p_dps,
-                        "error": p_err,
-                        "error_pct": p_err_pct,
-                        "range": p_range,
-                        "range_pct": p_range_pct
-                    })
-
-                # Sort players by DPS descending
-                players_list.sort(key=lambda x: x["dps"], reverse=True)
-
-                if players_list:
-                    mean_dps = players_list[0]["dps"]
-                else:
-                    m1 = re.search(r"DPS[=:]\s*([\d\.]+)", txt_content)
-                    if m1:
-                        mean_dps = float(m1.group(1))
-                    else:
-                        m2 = re.search(r"DPS Ranking:\s*\n\s*([\d\.]+)", txt_content)
-                        if m2:
-                            mean_dps = float(m2.group(1))
-
-                send_event("done", {
-                    "success": proc.returncode == 0,
-                    "return_code": proc.returncode,
-                    "elapsed_seconds": round(elapsed, 2),
-                    "mean_dps": mean_dps,
-                    "players": players_list,
-                    "report": txt_content,
-                    "has_html": os.path.exists(html_file)
-                })
+                self.send_json(200, {"status": "started"})
                 return
 
             elif url.path == "/api/save-hero-talents":
@@ -563,7 +707,7 @@ hr {
                                         if icon_url.startswith("/"):
                                             full_dl_url = f"https://www.fellowsguide.com{icon_url}"
                                         req = urllib.request.Request(full_dl_url, headers={
-                                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                                             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                                             "Referer": "https://www.fellowsguide.com/tools/build-planner/"
                                         })
                                         with urllib.request.urlopen(req, timeout=10) as res:
@@ -617,6 +761,7 @@ hr {
 
 class ReusableThreadingServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
+    daemon_threads = True
 
 def open_browser_delayed():
     time.sleep(0.6)
@@ -631,17 +776,25 @@ def run_server():
     
     server_address = ('', PORT)
     try:
-        with ReusableThreadingServer(server_address, FellowSimcHandler) as httpd:
-            print(f"==================================================")
-            print(f"  FellowSimc Web UI running at http://localhost:{PORT}")
-            print(f"  Opening dashboard in your browser...")
-            print(f"  Press Ctrl+C to stop the server")
-            print(f"==================================================")
-            threading.Thread(target=open_browser_delayed, daemon=True).start()
+        httpd = ReusableThreadingServer(server_address, FellowSimcHandler)
+        httpd.daemon_threads = True
+        print(f"==================================================")
+        print(f"  FellowSimc Web UI running at http://localhost:{PORT}")
+        print(f"  Opening dashboard in your browser...")
+        print(f"  Press Ctrl+C to stop the server")
+        print(f"==================================================")
+        threading.Thread(target=open_browser_delayed, daemon=True).start()
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\nShutting down server...")
+        finally:
+            SIM_MANAGER.stop_sim()
             try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\nShutting down server.")
+                httpd.server_close()
+            except Exception:
+                pass
+            os._exit(0)
     except OSError as e:
         if getattr(e, 'winerror', None) == 10048 or "10048" in str(e) or "address already in use" in str(e).lower():
             print(f"==================================================")

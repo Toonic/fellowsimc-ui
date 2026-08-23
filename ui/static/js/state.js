@@ -13,7 +13,7 @@ export class AppState {
     this.activeMode = "dungeon";
     this.selectedRouteType = "eternal_62";
     this.iterations = 1000;
-    this.threads = 12;
+    this.threads = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 4;
     this.scalePct = 37.99;
     this.enableScale = true;
     this.customRouteText = "";
@@ -54,9 +54,15 @@ actions+=/frost_bolt`;
     this.gearItemNames = {};
     this.weapon = "chronoshift";
     this.savedBuilds = [];
-    this.selectedCompareBuildIds = new Set();
+    this.selectedCompareBuildIds = new Set(["__current__"]);
     this.includeCurrentInCompare = true;
     this.enableCompare = false;
+    this.enableUpgrade = false;
+    this.upgradeType = "stats";
+    this.upgradeBlessingTier = "plus_one";
+    this.upgradeTraitTier = "plus_one";
+    this.upgradeSetTier = "add_one";
+    this.upgradeStatTier = "stat_grid";
     this.activeBuildName = "";
     this.currentLoadedBuildId = "";
 
@@ -69,7 +75,7 @@ actions+=/frost_bolt`;
       const stored = localStorage.getItem("fellowsimc_saved_builds");
       if (stored) {
         this.savedBuilds = JSON.parse(stored);
-        this.selectedCompareBuildIds = new Set(this.savedBuilds.map(b => b.id));
+        this.selectedCompareBuildIds = new Set(["__current__", ...this.savedBuilds.map(b => b.id)]);
       }
     } catch (e) {
       console.warn("Failed to load saved builds from localStorage:", e);

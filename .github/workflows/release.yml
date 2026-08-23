@@ -44,6 +44,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name || github.ref_name }}
-          name: FellowSimc UI - ${{ inputs.tag_name || github.ref_name }}
-          body_path: README.md
-          files: simc-windows.zip
+          name: ${{ inputs.release_name != '' && inputs.release_name || format('FellowSimc UI - {0}', inputs.tag_name || github.ref_name) }}
+          body_path: ${{ env.BODY_PATH }}

@@ -7,6 +7,8 @@ import { GearController } from "./modules/gear.js";
 import { LogImporter } from "./modules/importer.js";
 import { SimRunner } from "./modules/simulator.js";
 import { BuildsController } from "./modules/builds.js";
+import { CompareController } from "./modules/compare.js";
+import { UpgradeFinderController } from "./modules/upgrade_finder.js";
 
 class Application {
   constructor() {
@@ -15,19 +17,23 @@ class Application {
     this.heroPicker = new HeroPickerController(this.state);
     this.statsController = new StatsController(this.state);
     this.gearController = new GearController(this.state);
+    this.compare = new CompareController(this.state, () => ProfileGenerator.updateEditor(this.state));
+    this.upgradeFinder = new UpgradeFinderController(this.state, () => ProfileGenerator.updateEditor(this.state));
     this.importer = new LogImporter(this.state, this.heroPicker, this.gearController, this.statsController);
-    this.builds = new BuildsController(this.state, this.heroPicker, this.gearController, this.statsController);
-    this.simulator = new SimRunner(this.state);
+    this.builds = new BuildsController(this.state, this.heroPicker, this.gearController, this.statsController, this.compare);
+    this.simulator = new SimRunner(this.state, this.builds, this.heroPicker, this.gearController, this.statsController);
   }
 
   async init() {
     this.#initTabs();
     this.heroPicker.init();
     this.heroPicker.onHeroChange = () => {
-      this.builds.renderCompareBuildsList();
+      this.compare.renderCompareBuildsList();
     };
     this.statsController.init();
     this.gearController.init();
+    this.compare.init();
+    this.upgradeFinder.init();
     this.builds.init();
     this.importer.init();
     this.simulator.init();
@@ -176,10 +182,12 @@ class Application {
       });
     });
 
+    const defaultThreads = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 4;
     const inputThr = document.getElementById("input-threads");
     if (inputThr) {
+      inputThr.value = this.state.threads || defaultThreads;
       inputThr.addEventListener("input", (e) => {
-        this.state.threads = parseInt(e.target.value) || 12;
+        this.state.threads = parseInt(e.target.value) || defaultThreads;
         ProfileGenerator.updateEditor(this.state);
       });
     }

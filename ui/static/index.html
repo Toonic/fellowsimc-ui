@@ -430,7 +430,7 @@
         <div class="card compare-section-card">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div>
-              <h2>COMPARE BUILDS (MULTI-BUILD SIMULATION)</h2>
+              <h2>COMPARE BUILDS</h2>
               <p>Simulate multiple saved builds side-by-side using the encounter mode selected above.</p>
             </div>
             <div class="compare-toggle-wrap">
@@ -453,6 +453,79 @@
 
               <div id="compare-builds-checklist" class="compare-checklist-grid">
                 <!-- Dynamically populated with saved builds -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Automated Upgrade Finder -->
+        <div class="card upgrade-section-card" style="margin-top: 20px;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2>UPGRADE FINDER</h2>
+              <p>Auto-evaluate next talent point choices, blessing combinations, or trait upgrades against your Current Editor build.</p>
+            </div>
+            <div class="compare-toggle-wrap">
+              <label class="toggle-switch">
+                <input type="checkbox" id="check-enable-upgrade">
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="check-enable-upgrade" class="toggle-label-text">Enable Upgrade Finder</label>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="upgrade-options-box" class="compare-builds-box disabled-box">
+              <div class="mode-cards-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+                <div class="upgrade-card active" data-upgrade="stats" id="card-upgrade-stats">
+                  <h3>STATS FINDER</h3>
+                  <p class="mode-desc">Auto-evaluates all possible gear stat distributions against your current total gear budget.</p>
+                </div>
+                <!-- Option 2: Blessings -->
+                <div class="upgrade-card" data-upgrade="blessings" id="card-upgrade-blessings">
+                  <h3>BLESSINGS FINDER</h3>
+                  <p class="mode-desc">Auto-evaluates all 14 blessings against your Current Editor build.</p>
+                  <div class="mode-options" style="margin-top: 10px;">
+                    <label for="select-upgrade-blessing-tier">Evaluation Mode:</label>
+                    <select id="select-upgrade-blessing-tier" class="form-select form-select-sm">
+                      <option value="plus_one" selected>+1 to Current Build (Next Step • 14 variations)</option>
+                      <option value="4_only">4/4 Max Rank (Clears other blessings • 14 variations)</option>
+                      <option value="all_tiers">All Ranks: 1/4 - 4/4 (Clears other blessings • 56 variations)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Option 3: Traits -->
+                <div class="upgrade-card" data-upgrade="traits" id="card-upgrade-traits">
+                  <h3>TRAITS FINDER</h3>
+                  <p class="mode-desc">Auto-evaluates trait upgrades across all 27 traits against your Current Editor build.</p>
+                  <div class="mode-options" style="margin-top: 10px;">
+                    <label for="select-upgrade-trait-tier">Evaluation Mode:</label>
+                    <select id="select-upgrade-trait-tier" class="form-select form-select-sm">
+                      <option value="plus_one" selected>+1 to Current Build (Next Step • 27 variations)</option>
+                      <option value="4_only">4/4 Max Rank (Clears other traits • 27 variations)</option>
+                      <option value="all_ranks">All Ranks: 1/4 - 4/4 (Clears other traits • 108 variations)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Option 4: Sets -->
+                <div class="upgrade-card" data-upgrade="sets" id="card-upgrade-sets">
+                  <h3>SETS FINDER</h3>
+                  <p class="mode-desc">Auto-evaluates gear set bonuses across all 12 sets against your Current Editor build.</p>
+                  <div class="mode-options" style="margin-top: 10px;">
+                    <label for="select-upgrade-set-tier">Evaluation Mode:</label>
+                    <select id="select-upgrade-set-tier" class="form-select form-select-sm">
+                      <option value="add_one" selected>+1 Set to Current Build (12 variations)</option>
+                      <option value="single_set">Single Set Only (Clears other sets • 12 variations)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Option 5: Talents -->
+                <div class="upgrade-card" data-upgrade="talents" id="card-upgrade-talents">
+                  <h3>NEXT TALENT FINDER</h3>
+                  <p class="mode-desc">Auto-evaluates every eligible unselected talent that fits your remaining points against your Current Editor build.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -521,7 +594,7 @@ actions+=/frost_bolt"></textarea>
 
               <div class="form-group">
                 <label for="input-threads">CPU Threads</label>
-                <input type="number" id="input-threads" class="form-input" value="12" min="1" max="64">
+                <input type="number" id="input-threads" class="form-input" min="1" max="128">
               </div>
             </div>
           </div>
@@ -548,6 +621,7 @@ actions+=/frost_bolt"></textarea>
             <span id="result-meta-info" class="dps-meta">1000 Iterations • 0.0s elapsed</span>
           </div>
           <div class="results-quick-actions">
+            <button type="button" id="btn-stop-sim" class="btn btn-danger hidden">STOP SIM</button>
             <button id="btn-run-sim" class="btn btn-primary">RUN SIM</button>
             <button id="btn-open-html-report" class="btn btn-secondary hidden">
               OPEN FULL HTML REPORT
