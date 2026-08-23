@@ -56,7 +56,6 @@ export class HeroPickerController {
       const noneOpt = document.createElement("option");
       noneOpt.value = "none";
       noneOpt.textContent = "None";
-      noneOpt.selected = true;
       selectLeg.appendChild(noneOpt);
 
       const legList = HERO_LEGENDARIES[heroKey] || HERO_LEGENDARIES["rime"];
@@ -66,7 +65,7 @@ export class HeroPickerController {
         opt.textContent = leg.name;
         selectLeg.appendChild(opt);
       });
-      this.state.legendary = "none";
+      selectLeg.value = this.state.legendary || "none";
     }
 
     // Update APL Presets dropdown

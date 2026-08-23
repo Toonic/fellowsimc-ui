@@ -1,4 +1,3 @@
-// FellowSimc Main Entry Point
 import { state } from "./state.js";
 import { ProfileGenerator } from "./modules/profile.js";
 import { HeroPickerController } from "./modules/hero_picker.js";
@@ -6,6 +5,7 @@ import { StatsController } from "./modules/stats.js";
 import { GearController } from "./modules/gear.js";
 import { LogImporter } from "./modules/importer.js";
 import { SimRunner } from "./modules/simulator.js";
+import { BuildsController } from "./modules/builds.js";
 
 class Application {
   constructor() {
@@ -14,6 +14,7 @@ class Application {
     this.statsController = new StatsController(this.state);
     this.gearController = new GearController(this.state);
     this.importer = new LogImporter(this.state, this.heroPicker, this.gearController, this.statsController);
+    this.builds = new BuildsController(this.state, this.heroPicker, this.gearController, this.statsController);
     this.simulator = new SimRunner(this.state);
   }
 
@@ -23,6 +24,7 @@ class Application {
     this.heroPicker.init();
     this.statsController.init();
     this.gearController.init();
+    this.builds.init();
     this.importer.init();
     this.simulator.init();
     this.#initModeCards();
@@ -48,6 +50,7 @@ class Application {
         tab.classList.add("active");
         const targetPane = document.getElementById(tab.dataset.tab);
         if (targetPane) targetPane.classList.add("active");
+        ProfileGenerator.updateEditor(this.state);
       });
     });
   }
@@ -71,7 +74,7 @@ class Application {
         if (["INPUT", "BUTTON", "SELECT"].includes(e.target.tagName)) return;
         document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
         card.classList.add("active");
-        this.state.activeMode = card.dataset.mode;
+        this.state.activeMode = card.dataset.mode || "dungeon";
         ProfileGenerator.updateEditor(this.state);
       });
     });

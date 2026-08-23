@@ -1,4 +1,5 @@
 // Simulation Execution and Results Streaming Module
+import { ProfileGenerator } from "./profile.js";
 
 export class SimRunner {
   constructor(state) {
@@ -14,21 +15,33 @@ export class SimRunner {
     const btnHtml = document.getElementById("btn-open-html-report");
     if (btnHtml) {
       btnHtml.addEventListener("click", () => {
-        window.open("/test_report.html", "_blank");
+        window.open("/api/report", "_blank");
       });
     }
 
     // Modal settings — wire to the actual IDs in index.html
+    const statusBadge  = document.getElementById("connection-status");
     const btnSettings  = document.getElementById("btn-settings");
     const modalOverlay = document.getElementById("modal-settings");
     const btnClose     = document.getElementById("btn-close-modal");
     const btnSave      = document.getElementById("btn-save-credentials");
 
-    const openModal  = () => { if (modalOverlay) modalOverlay.classList.remove("hidden"); };
-    const closeModal = () => { if (modalOverlay) modalOverlay.classList.add("hidden"); };
+    const openModal  = () => {
+      if (modalOverlay) {
+        modalOverlay.classList.remove("hidden");
+        modalOverlay.style.display = "flex";
+      }
+    };
+    const closeModal = () => {
+      if (modalOverlay) {
+        modalOverlay.classList.add("hidden");
+        modalOverlay.style.display = "none";
+      }
+    };
 
     if (btnSettings)  btnSettings.addEventListener("click", openModal);
-    if (btnClose)     btnClose.addEventListener("click", closeModal);
+    if (statusBadge)  statusBadge.addEventListener("click", openModal);
+    if (btnClose)     btnClose.addEventListener("click", (e) => { e.stopPropagation(); closeModal(); });
     if (btnSave)      btnSave.addEventListener("click", () => this.saveApiConfig());
 
     // Close when clicking outside the modal card
@@ -37,6 +50,13 @@ export class SimRunner {
         if (e.target === modalOverlay) closeModal();
       });
     }
+
+    // Close on Escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modalOverlay && modalOverlay.style.display !== "none" && !modalOverlay.classList.contains("hidden")) {
+        closeModal();
+      }
+    });
   }
 
   async checkApiConfig() {
@@ -44,8 +64,12 @@ export class SimRunner {
       const res = await fetch("/api/config");
       const data = await res.json();
       const cfgInput = document.getElementById("cfg-client-id");
+      const cfgSec = document.getElementById("cfg-client-secret");
       if (cfgInput && data.client_id) {
         cfgInput.value = data.client_id;
+      }
+      if (cfgSec && data.client_secret) {
+        cfgSec.value = data.client_secret;
       }
       const statusBadge = document.getElementById("connection-status");
       if (statusBadge) {
@@ -81,13 +105,70 @@ export class SimRunner {
     }
   }
 
+  renderCompareLeaderboard(players) {
+    const compareCard = document.getElementById("compare-results-card");
+    const container = document.getElementById("compare-leaderboard-container");
+    if (!compareCard || !container) return;
+
+    if (!players || players.length <= 1) {
+      compareCard.classList.add("hidden");
+      return;
+    }
+
+    compareCard.classList.remove("hidden");
+    container.innerHTML = "";
+
+    const topDps = players[0].dps || 1;
+    const baselineDps = players[players.length - 1].dps || 1;
+
+    players.forEach((p, idx) => {
+      const dps = Math.round(p.dps);
+      const barPct = Math.max(12, Math.round((p.dps / topDps) * 100));
+      const diffFromTop = Math.round(p.dps - topDps);
+      const diffPctTop = ((p.dps - topDps) / topDps * 100).toFixed(1);
+      const diffFromBaseline = Math.round(p.dps - baselineDps);
+      const diffPctBaseline = ((p.dps - baselineDps) / baselineDps * 100).toFixed(1);
+
+      const isWinner = idx === 0;
+      const rankClass = idx === 0 ? "rank-gold" : idx === 1 ? "rank-silver" : idx === 2 ? "rank-bronze" : "rank-default";
+
+      const row = document.createElement("div");
+      row.className = `compare-result-row ${isWinner ? "winner" : ""}`;
+      row.innerHTML = `
+        <div class="compare-rank-badge ${rankClass}">#${idx + 1}</div>
+        <div class="compare-bar-container">
+          <div class="compare-bar-meta">
+            <strong class="compare-actor-name">${p.name.replace(/_/g, ' ')}</strong>
+            <div class="compare-dps-values">
+              <span class="compare-dps-main">${dps.toLocaleString()} DPS</span>
+              ${idx > 0 ? `<span class="compare-dps-delta negative">${diffFromTop.toLocaleString()} (${diffPctTop}%)</span>` : `<span class="compare-dps-delta winner-tag">TOP BUILD</span>`}
+            </div>
+          </div>
+          <div class="compare-bar-track">
+            <div class="compare-bar-fill ${isWinner ? "gold-gradient" : "blue-gradient"}" style="width: ${barPct}%;"></div>
+          </div>
+          <div class="compare-bar-subtext">
+            <span>Range: ${Math.round(p.range).toLocaleString()} DPS (${p.range_pct}%)</span>
+            <span>Error: ±${Math.round(p.error)} DPS</span>
+            ${idx !== players.length - 1 && diffFromBaseline > 0 ? `<span class="gain-badge">+${diffFromBaseline.toLocaleString()} (+${diffPctBaseline}%) vs lowest</span>` : ""}
+          </div>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
   async runSimulation() {
-    const profileText = document.getElementById("raw-profile-editor")?.value || "";
+    ProfileGenerator.updateEditor(this.state);
+    const profileText = ProfileGenerator.generate(this.state);
     const consoleBox = document.getElementById("sim-console-output");
     const dpsVal = document.getElementById("result-dps-value");
     const metaVal = document.getElementById("result-meta-info");
     const btnRun = document.getElementById("btn-run-sim");
     const btnHtml = document.getElementById("btn-open-html-report");
+    const compareCard = document.getElementById("compare-results-card");
+
+    if (compareCard) compareCard.classList.add("hidden");
 
     // Switch to results tab
     document.querySelectorAll(".fg-tab, .nav-tab").forEach(t => t.classList.remove("active"));
@@ -180,6 +261,10 @@ export class SimRunner {
             if (consoleBox && eventData.report) {
               consoleBox.textContent += "\n\n" + eventData.report;
               consoleBox.scrollTop = 0;
+            }
+
+            if (eventData.players && eventData.players.length > 1) {
+              this.renderCompareLeaderboard(eventData.players);
             }
 
             if (btnHtml) {

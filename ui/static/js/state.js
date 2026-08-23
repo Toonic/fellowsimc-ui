@@ -53,9 +53,81 @@ actions+=/frost_bolt`;
     this.gearAffixes = [];
     this.gearItemNames = {};
     this.weapon = "chronoshift";
-    this.talentsData = null;
+    this.savedBuilds = [];
+    this.selectedCompareBuildIds = new Set();
+    this.includeCurrentInCompare = true;
+    this.enableCompare = false;
+    this.activeBuildName = "";
+    this.currentLoadedBuildId = "";
 
     this._listeners = new Set();
+    this.loadSavedBuilds();
+  }
+
+  loadSavedBuilds() {
+    try {
+      const stored = localStorage.getItem("fellowsimc_saved_builds");
+      if (stored) {
+        this.savedBuilds = JSON.parse(stored);
+        this.selectedCompareBuildIds = new Set(this.savedBuilds.map(b => b.id));
+      }
+    } catch (e) {
+      console.warn("Failed to load saved builds from localStorage:", e);
+      this.savedBuilds = [];
+    }
+  }
+
+  saveBuildsToStorage() {
+    try {
+      localStorage.setItem("fellowsimc_saved_builds", JSON.stringify(this.savedBuilds));
+    } catch (e) {
+      console.error("Failed to save builds to localStorage:", e);
+    }
+  }
+
+  toBuildSnapshot(name) {
+    return {
+      id: "build_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      name: name || this.activeBuildName || `${this.selectedPlayerName} - ${this.selectedHero.toUpperCase()}`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      hero: this.selectedHero,
+      playerName: this.selectedPlayerName,
+      stats: { ...this.stats },
+      selectedTalents: Array.from(this.selectedTalents),
+      weapon: this.weapon,
+      legendary: this.legendary,
+      activeSets: Array.from(this.activeSets),
+      gems: { ...this.gems },
+      traitCounts: { ...this.traitCounts },
+      blessingCounts: { ...this.blessingCounts },
+      gearAffixes: [...(this.gearAffixes || [])],
+      gearItemNames: { ...(this.gearItemNames || {}) },
+      aplChoice: this.aplChoice,
+      useCustomApl: this.useCustomApl,
+      customAplText: this.customAplText
+    };
+  }
+
+  applyBuildSnapshot(b) {
+    if (!b) return;
+    this.currentLoadedBuildId = b.id || "";
+    this.activeBuildName = b.name || "Loaded Build";
+    this.selectedPlayerName = b.playerName || b.name || "Hero";
+    this.selectedHero = (b.hero || "rime").toLowerCase();
+    this.stats = b.stats ? { ...b.stats } : { ...this.stats };
+    this.selectedTalents = new Set(b.selectedTalents || []);
+    this.weapon = b.weapon || "chronoshift";
+    this.legendary = b.legendary || "none";
+    this.activeSets = new Set(b.activeSets || []);
+    this.gems = b.gems ? { ...b.gems } : { ...this.gems };
+    this.traitCounts = b.traitCounts ? { ...b.traitCounts } : {};
+    this.blessingCounts = b.blessingCounts ? { ...b.blessingCounts } : {};
+    this.gearAffixes = b.gearAffixes ? [...b.gearAffixes] : [];
+    this.gearItemNames = b.gearItemNames ? { ...b.gearItemNames } : {};
+    this.aplChoice = b.aplChoice || "base";
+    this.useCustomApl = Boolean(b.useCustomApl);
+    this.customAplText = b.customAplText || this.customAplText;
   }
 
   onChange(callback) {

@@ -23,6 +23,135 @@ RUN_DIR = os.path.join(ROOT_DIR, "bin", "x64", "Release")
 if not os.path.exists(RUN_DIR):
     RUN_DIR = ROOT_DIR
 
+BUILDS_DIR = os.path.join(ROOT_DIR, "builds")
+os.makedirs(BUILDS_DIR, exist_ok=True)
+
+HERO_CLASS_KEYS = ["rime", "mara", "gunde", "vigor", "sune", "meiko", "mosse", "warmaster", "eldrane", "ink", "lisa"]
+
+def parse_simc_file(filepath):
+    """Parse a .simc file into a build dictionary."""
+    filename = os.path.splitext(os.path.basename(filepath))[0]
+    build = {
+        "id": f"build_file_{filename}",
+        "name": filename.replace("_", " "),
+        "hero": "rime",
+        "playerName": filename,
+        "stats": {"primary": 259, "stamina": 400, "haste": 0, "expertise": 0, "crit": 0, "spirit": 0, "armor": 500},
+        "selectedTalents": [],
+        "weapon": "chronoshift",
+        "legendary": "none",
+        "activeSets": [],
+        "gems": {},
+        "traitCounts": {},
+        "blessingCounts": {},
+        "gearAffixes": [],
+        "gearItemNames": {},
+        "aplChoice": "base",
+        "useCustomApl": False,
+        "customAplText": "",
+        "updatedAt": os.path.getmtime(filepath) * 1000,
+        "filepath": filepath
+    }
+    
+    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("apl/heroes/"):
+                parts = line.split("/")
+                if len(parts) >= 3:
+                    preset_file = parts[-1]
+                    for choice in ["talons", "frostweaver", "soulfrost", "generic", "base"]:
+                        if f"_{choice}_apl.simc" in preset_file:
+                            build["aplChoice"] = choice
+                            break
+                continue
+            if "=" in line:
+                key, val = line.split("=", 1)
+                key = key.strip().lower()
+                val = val.strip().strip('"').strip("'")
+                
+                if key in HERO_CLASS_KEYS:
+                    build["hero"] = key
+                    build["playerName"] = val
+                    build["name"] = val
+                elif key.startswith("gear_"):
+                    stat_name = key[5:]
+                    if stat_name in ["intellect", "agility", "strength"]:
+                        try: build["stats"]["primary"] = int(val) + 100
+                        except ValueError: pass
+                    elif stat_name == "stamina":
+                        try: build["stats"]["stamina"] = int(val)
+                        except ValueError: pass
+                    elif stat_name == "haste_rating":
+                        try: build["stats"]["haste"] = int(val)
+                        except ValueError: pass
+                    elif stat_name == "expertise_rating":
+                        try: build["stats"]["expertise"] = int(val)
+                        except ValueError: pass
+                    elif stat_name == "crit_rating":
+                        try: build["stats"]["crit"] = int(val)
+                        except ValueError: pass
+                    elif stat_name == "spirit":
+                        try: build["stats"]["spirit"] = int(val)
+                        except ValueError: pass
+                    elif stat_name == "armor":
+                        try: build["stats"]["armor"] = int(val)
+                        except ValueError: pass
+                elif key.startswith("gems."):
+                    g_type = key[5:].replace("_power", "")
+                    try: build["gems"][g_type] = int(val)
+                    except ValueError: pass
+                elif key.startswith("sets."):
+                    s_name = key[5:]
+                    if val == "1":
+                        if s_name not in build["activeSets"]:
+                            build["activeSets"].append(s_name)
+                    elif val == "0" and s_name in build["activeSets"]:
+                        build["activeSets"].remove(s_name)
+                elif key.startswith("legendary."):
+                    if val == "1": build["legendary"] = key[10:]
+                elif key == "weapon":
+                    build["weapon"] = val
+                elif key.startswith("weapon_trait."):
+                    t_name = key[13:]
+                    try: build["traitCounts"][t_name] = int(val)
+                    except ValueError: pass
+                elif key == "talents":
+                    tals = [t.split(":")[0] for t in val.split("/") if t]
+                    build["selectedTalents"] = tals
+                elif key in ["head", "shoulder", "chest", "wrists", "hands", "legs", "feet", "finger1", "finger2", "neck", "back", "main_hand"]:
+                    build["gearAffixes"].append(f"{key}={val}")
+                    if "," in val:
+                        item_part, aff_part = val.split(",", 1)
+                        build["gearItemNames"][key] = item_part.strip()
+                        if "affixes=" in aff_part:
+                            affs_str = aff_part.replace("affixes=", "").strip()
+                            for aff in affs_str.split("/"):
+                                aff = aff.strip()
+                                if aff:
+                                    build["blessingCounts"][aff] = build["blessingCounts"].get(aff, 0) + 1
+                    else:
+                        build["gearItemNames"][key] = val.strip()
+    return build
+
+def load_all_local_builds():
+    builds = []
+    if not os.path.exists(BUILDS_DIR):
+        return builds
+        
+    for fname in os.listdir(BUILDS_DIR):
+        fpath = os.path.join(BUILDS_DIR, fname)
+        if fname.endswith(".simc"):
+            try:
+                b_data = parse_simc_file(fpath)
+                builds.append(b_data)
+            except Exception:
+                pass
+    builds.sort(key=lambda x: x.get("updatedAt", 0), reverse=True)
+    return builds
+
 def load_config():
     if os.path.exists(CONFIG_FILE):
         try:
@@ -47,12 +176,20 @@ class FellowSimcHandler(http.server.BaseHTTPRequestHandler):
             cfg = load_config()
             self.send_json(200, {
                 "client_id": cfg.get("client_id", ""),
+                "client_secret": cfg.get("client_secret", ""),
                 "has_secret": bool(cfg.get("client_secret"))
             })
             return
 
-        elif url.path == "/api/report":
+        elif url.path == "/api/builds":
+            builds = load_all_local_builds()
+            self.send_json(200, {"builds": builds})
+            return
+
+        elif url.path in ["/api/report", "/test_report.html", "/latest_sim.html"]:
             report_path = os.path.join(RUN_DIR, "latest_sim.html")
+            if not os.path.exists(report_path):
+                report_path = os.path.join(ROOT_DIR, "latest_sim.html")
             if not os.path.exists(report_path):
                 report_path = os.path.join(ROOT_DIR, "newTest.html")
             if os.path.exists(report_path):
@@ -196,6 +333,30 @@ hr {
                 save_config(cfg)
                 self.send_json(200, {"success": True})
 
+            elif url.path == "/api/builds/save":
+                raw_name = data.get("name", "Untitled_Build")
+                clean_name = re.sub(r'[^a-zA-Z0-9_\-\ ]', '_', raw_name).strip()
+                if not clean_name:
+                    clean_name = "Untitled_Build"
+                
+                simc_content = data.get("simc_content", "")
+                simc_path = os.path.join(BUILDS_DIR, f"{clean_name}.simc")
+                if simc_content:
+                    with open(simc_path, "w", encoding="utf-8") as f:
+                        f.write(simc_content)
+
+                self.send_json(200, {"success": True, "filename": clean_name, "simc_path": simc_path})
+
+            elif url.path == "/api/builds/delete":
+                raw_name = data.get("name", "")
+                clean_name = re.sub(r'[^a-zA-Z0-9_\-\ ]', '_', raw_name).strip()
+                if clean_name:
+                    simc_path = os.path.join(BUILDS_DIR, f"{clean_name}.simc")
+                    if os.path.exists(simc_path):
+                        try: os.remove(simc_path)
+                        except Exception: pass
+                self.send_json(200, {"success": True})
+
             elif url.path == "/api/import-report":
                 cfg = load_config()
                 code, fight_id, source_id = importer.extract_report_code(data.get("url_or_code", ""))
@@ -319,19 +480,50 @@ hr {
                         pass
 
                 mean_dps = 0.0
-                m1 = re.search(r"DPS[=:]\s*([\d\.]+)", txt_content)
-                if m1:
-                    mean_dps = float(m1.group(1))
+                players_list = []
+                
+                # Parse multi-player details from txt report
+                # Pattern: Player: <name> <spec> <class> <race> <level>\n  DPS=<val> DPS-Error=<err>/<err_pct>% DPS-Range=<range>/<range_pct>%
+                player_pattern = re.compile(
+                    r"Player:\s*([^\n\r]+?)\s+[^\s]+\s+[^\s]+\s+[^\s]+\s+\d+\s*\n\s*DPS=([\d\.]+)(?:\s+DPS-Error=([\d\.]+)/([\d\.]+)%)?(?:\s+DPS-Range=([\d\.]+)/([\d\.]+)%)?",
+                    re.MULTILINE
+                )
+                for pm in player_pattern.finditer(txt_content):
+                    p_name = pm.group(1).strip()
+                    p_dps = float(pm.group(2))
+                    p_err = float(pm.group(3)) if pm.group(3) else 0.0
+                    p_err_pct = float(pm.group(4)) if pm.group(4) else 0.0
+                    p_range = float(pm.group(5)) if pm.group(5) else 0.0
+                    p_range_pct = float(pm.group(6)) if pm.group(6) else 0.0
+                    players_list.append({
+                        "name": p_name,
+                        "dps": p_dps,
+                        "error": p_err,
+                        "error_pct": p_err_pct,
+                        "range": p_range,
+                        "range_pct": p_range_pct
+                    })
+
+                # Sort players by DPS descending
+                players_list.sort(key=lambda x: x["dps"], reverse=True)
+
+                if players_list:
+                    mean_dps = players_list[0]["dps"]
                 else:
-                    m2 = re.search(r"DPS Ranking:\s*\n\s*([\d\.]+)", txt_content)
-                    if m2:
-                        mean_dps = float(m2.group(1))
+                    m1 = re.search(r"DPS[=:]\s*([\d\.]+)", txt_content)
+                    if m1:
+                        mean_dps = float(m1.group(1))
+                    else:
+                        m2 = re.search(r"DPS Ranking:\s*\n\s*([\d\.]+)", txt_content)
+                        if m2:
+                            mean_dps = float(m2.group(1))
 
                 send_event("done", {
                     "success": proc.returncode == 0,
                     "return_code": proc.returncode,
                     "elapsed_seconds": round(elapsed, 2),
                     "mean_dps": mean_dps,
+                    "players": players_list,
                     "report": txt_content,
                     "has_html": os.path.exists(html_file)
                 })

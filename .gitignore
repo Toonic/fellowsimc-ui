@@ -153,3 +153,4 @@ UpgradeLog.htm
 libsimcengine.prl
 
 ui/config.json
+/builds/**

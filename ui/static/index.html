@@ -100,6 +100,46 @@
 
       <!-- TAB 2: HERO & LOADOUT (HERO SELECTOR + TALENTS + GEAR & STATS) -->
       <section id="tab-hero" class="tab-pane">
+        <!-- Build Management Bar (Fellowship style Save/Load/New) -->
+        <div class="build-header-toolbar">
+          <div class="build-name-input-wrap">
+            <input type="text" id="input-build-name" class="form-input build-name-input" placeholder="Build name..." spellcheck="false">
+          </div>
+          <div class="build-select-wrap">
+            <select id="select-load-build" class="form-select build-load-select">
+              <option value="">Load build...</option>
+            </select>
+          </div>
+          <div class="build-buttons-wrap">
+            <button type="button" id="btn-save-build" class="btn btn-secondary btn-sm toolbar-btn" title="Save current loadout as named build">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span>Save</span>
+            </button>
+            <button type="button" id="btn-new-build" class="btn btn-secondary btn-sm toolbar-btn" title="Start a fresh build">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              <span>New</span>
+            </button>
+            <button type="button" id="btn-rename-build" class="btn btn-secondary btn-sm toolbar-btn" title="Rename currently loaded build">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <span>Rename</span>
+            </button>
+            <button type="button" id="btn-duplicate-build" class="btn btn-secondary btn-sm toolbar-btn" title="Duplicate currently loaded build">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Duplicate</span>
+            </button>
+            <button type="button" id="btn-delete-build" class="btn btn-danger btn-sm toolbar-btn" title="Delete loaded build">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+            <button type="button" id="btn-export-builds" class="btn btn-gold btn-sm toolbar-btn" title="Export all builds to JSON">
+              <span>Export</span>
+            </button>
+            <button type="button" id="btn-import-builds" class="btn btn-gold btn-sm toolbar-btn" title="Import builds from JSON or SimC">
+              <span>Import</span>
+            </button>
+            <input type="file" id="input-import-builds-file" accept=".json,.simc" class="hidden">
+          </div>
+        </div>
+
         <!-- Hero Selector Card -->
         <div class="card hero-picker-card">
           <div class="card-header">
@@ -328,6 +368,7 @@
 
       <!-- TAB 3: ROUTE & MODES -->
       <section id="tab-routes" class="tab-pane">
+        <!-- Card 1: Route & Simulation Mode -->
         <div class="card">
           <div class="card-header">
             <h2>ROUTE & SIMULATION MODE</h2>
@@ -380,6 +421,38 @@
                   <label for="input-aoe-duration" style="margin-top: 8px;">Duration (Seconds):</label>
                   <input type="number" id="input-aoe-duration" class="form-input" value="360" min="30" max="1800">
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Compare Builds (Separate Square Card) -->
+        <div class="card compare-section-card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2>COMPARE BUILDS (MULTI-BUILD SIMULATION)</h2>
+              <p>Simulate multiple saved builds side-by-side using the encounter mode selected above.</p>
+            </div>
+            <div class="compare-toggle-wrap">
+              <label class="toggle-switch">
+                <input type="checkbox" id="check-enable-compare">
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="check-enable-compare" class="toggle-label-text">Enable Comparison Mode</label>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="compare-builds-box" class="compare-builds-box">
+              <div class="compare-actions-bar">
+                <span class="compare-hint-text">Select builds to simulate in comparison mode:</span>
+                <div class="btn-group-sm">
+                  <button type="button" id="btn-compare-select-all" class="btn btn-secondary btn-sm">SELECT ALL</button>
+                  <button type="button" id="btn-compare-clear-all" class="btn btn-secondary btn-sm">CLEAR ALL</button>
+                </div>
+              </div>
+
+              <div id="compare-builds-checklist" class="compare-checklist-grid">
+                <!-- Dynamically populated with saved builds -->
               </div>
             </div>
           </div>
@@ -482,6 +555,19 @@ actions+=/frost_bolt"></textarea>
           </div>
         </div>
 
+        <!-- Compare Results Leaderboard Card (Raidbots Style) -->
+        <div id="compare-results-card" class="card compare-leaderboard-card hidden">
+          <div class="card-header">
+            <h2>BUILD COMPARISON RANKINGS</h2>
+            <p>Side-by-side DPS comparison leaderboard and percentage delta rankings.</p>
+          </div>
+          <div class="card-body">
+            <div id="compare-leaderboard-container" class="compare-leaderboard-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header">
             <h3>SIMULATION LOG OUTPUT</h3>
@@ -494,11 +580,11 @@ actions+=/frost_bolt"></textarea>
     </main>
 
     <!-- API Keys Modal -->
-    <div id="modal-settings" class="modal-overlay hidden">
-      <div class="modal-card">
+    <div id="modal-settings" class="modal-overlay hidden" style="display: none;" onclick="if(event.target === this) { this.classList.add('hidden'); this.style.display = 'none'; }">
+      <div class="modal-card" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>FELLOWSHIPLOGS API CONFIGURATION</h3>
-          <button id="btn-close-modal" class="btn-close">✕</button>
+          <button type="button" id="btn-close-modal" class="btn-close" onclick="const m=document.getElementById('modal-settings'); if(m){ m.classList.add('hidden'); m.style.display='none'; }">✕</button>
         </div>
         <div class="modal-body">
           <p>Enter your Client ID and Client Secret from <a href="https://www.fellowshiplogs.com/profile" target="_blank">fellowshiplogs.com/profile</a>.</p>
@@ -512,7 +598,7 @@ actions+=/frost_bolt"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button id="btn-save-credentials" class="btn btn-primary">SAVE CREDENTIALS</button>
+          <button type="button" id="btn-save-credentials" class="btn btn-primary">SAVE CREDENTIALS</button>
         </div>
       </div>
     </div>
