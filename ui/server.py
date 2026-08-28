@@ -229,7 +229,7 @@ class SimulationManager:
 
 SIM_MANAGER = SimulationManager()
 
-HERO_CLASS_KEYS = ["rime", "mara", "gunde", "vigor", "sune", "meiko", "mosse", "warmaster", "eldrane", "ink", "lisa"]
+HERO_CLASS_KEYS = ["rime", "mara", "gunde", "elarion", "aeona", "ardeos", "tariq", "xavian", "vigor", "sylvie", "sune", "meiko", "mosse", "warmaster", "eldrane", "ink", "lisa"]
 
 def parse_simc_file(filepath):
     """Parse a .simc file into a build dictionary."""
@@ -575,8 +575,11 @@ hr {
     def do_POST(self):
         url = urllib.parse.urlparse(self.path)
         length = int(self.headers.get('Content-Length', 0))
-        body = self.rfile.read(length).decode('utf-8')
-        data = json.loads(body) if body else {}
+        body = self.rfile.read(length).decode('utf-8') if length > 0 else ""
+        try:
+            data = json.loads(body) if body and body.strip() else {}
+        except Exception:
+            data = {}
 
         try:
             if url.path == "/api/config":
