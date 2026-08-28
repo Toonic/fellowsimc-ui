@@ -255,34 +255,45 @@ export class LogImporter {
       if (nameEl) nameEl.textContent = playerName.toUpperCase();
       if (classEl) classEl.textContent = heroKey.toUpperCase();
 
+      // Direct Stat Inputs (gen.attrs already includes +100 base primary stat for UI display)
+      const primaryStatKey = (HERO_DEFINITIONS[heroKey]?.primaryStat || "intellect").toLowerCase();
+      let rawPrim = 0;
+      if (primaryStatKey === "agility") {
+        rawPrim = gen.attrs?.Agility || gen.sheet_stats?.Agility || 0;
+      } else if (primaryStatKey === "strength") {
+        rawPrim = gen.attrs?.Strength || gen.sheet_stats?.Strength || 0;
+      } else {
+        rawPrim = gen.attrs?.Intellect || gen.sheet_stats?.Intellect || 0;
+      }
+      if (!rawPrim) {
+        rawPrim = gen.attrs?.Intellect || gen.attrs?.Agility || gen.attrs?.Strength || 100;
+      }
+      const primStatVal = rawPrim;
+
       // Summary Quick Stats
       const statsEl = document.getElementById("summary-stats");
       if (statsEl) {
         statsEl.innerHTML = `
-          <span>Primary: <strong>${gen.attrs.Intellect || gen.attrs.Agility || gen.attrs.Strength || gen.attrs.Attack_Power || 183}</strong></span>
-          <span>Stam: <strong>${gen.attrs.Stamina}</strong></span>
-          <span>Haste: <strong>${gen.attrs.Haste}</strong></span>
-          <span>Crit: <strong>${gen.attrs['Critical Strike']}</strong></span>
-          <span>Expertise: <strong>${gen.attrs.Expertise}</strong></span>
-          <span>Spirit: <strong>${gen.attrs.Spirit}</strong></span>
-          <span>Armor: <strong>${gen.attrs.Armor}</strong></span>
+          <span>Primary (${primaryStatKey.toUpperCase()}): <strong>${primStatVal}</strong></span>
+          <span>Stam: <strong>${gen.attrs?.Stamina || 0}</strong></span>
+          <span>Haste: <strong>${gen.attrs?.Haste || 0}</strong></span>
+          <span>Crit: <strong>${gen.attrs?.['Critical Strike'] || 0}</strong></span>
+          <span>Expertise: <strong>${gen.attrs?.Expertise || 0}</strong></span>
+          <span>Spirit: <strong>${gen.attrs?.Spirit || 0}</strong></span>
+          <span>Armor: <strong>${gen.attrs?.Armor || 0}</strong></span>
         `;
       }
       const badgeCard = document.getElementById("character-summary-badge");
       if (badgeCard) badgeCard.classList.remove("hidden");
 
-      // Direct Stat Inputs (gen.attrs already includes +100 base primary stat for UI display)
-      const rawPrim = gen.attrs.Intellect || gen.attrs.Agility || gen.attrs.Strength || gen.attrs.Attack_Power || 159;
-      const primStatVal = rawPrim;
-
       this.state.stats = {
         primary: primStatVal,
-        stamina: gen.attrs.Stamina || 0,
-        haste: gen.attrs.Haste || 0,
-        expertise: gen.attrs.Expertise || 0,
-        crit: gen.attrs["Critical Strike"] || 0,
-        spirit: gen.attrs.Spirit || 0,
-        armor: gen.attrs.Armor || 0
+        stamina: gen.attrs?.Stamina || 0,
+        haste: gen.attrs?.Haste || 0,
+        expertise: gen.attrs?.Expertise || 0,
+        crit: gen.attrs?.["Critical Strike"] || 0,
+        spirit: gen.attrs?.Spirit || 0,
+        armor: gen.attrs?.Armor || 0
       };
 
       this.statsController.updateInputs();

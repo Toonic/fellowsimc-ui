@@ -34,19 +34,33 @@ RIME_TALENT_MAP = {
 # Weapon mapping table from weapon names to Simc weapon constants
 WEAPON_MAP = {
     "Chronoshift": "chronoshift",
+    "Chrono": "chronoshift",
     "Icicles of Anzhyr": "icicles_of_anzhyr",
     "Icicles": "icicles_of_anzhyr",
     "Anzhyr": "icicles_of_anzhyr",
     "Voidbringer": "voidbringers_touch",
     "Voidbringer's Touch": "voidbringers_touch",
     "Voidbringers Touch": "voidbringers_touch",
+    "Void-touched": "voidbringers_touch",
+    "Voidtouched": "voidbringers_touch",
+    "Void-Touched": "voidbringers_touch",
     "Nature's Fury": "natures_fury",
     "Natures Fury": "natures_fury",
     "Skybolt": "twilight_skybolt",
+    "Twilight Skybolt": "twilight_skybolt",
     "Fated Strike": "fated_strike",
-    "Sahril": "sahrils_wrath",
     "Sahril's Wrath": "sahrils_wrath",
-    "Earthbreaker": "earthbreaker"
+    "Sahrils Wrath": "sahrils_wrath",
+    "Sahril's Aegis": "sahrils_aegis",
+    "Sahrils Aegis": "sahrils_aegis",
+    "Sahril": "sahrils_wrath",
+    "Earthbreaker": "earthbreaker",
+    "Alzerac's Shackle": "alzeracs_shackle",
+    "Alzeracs Shackle": "alzeracs_shackle",
+    "Repository of Frozen Light": "repository_of_frozen_light",
+    "Frozen Light": "repository_of_frozen_light",
+    "Zeraleth's Hunger": "zeraleths_hunger",
+    "Zeraleths Hunger": "zeraleths_hunger"
 }
 
 SLOT_NAME_MAP = {
@@ -424,7 +438,7 @@ def generate_simc_profile(character_data, options=None):
     gear_items_output = []
     gear_item_names = {}
     set_counts = {}
-    weapon_name = "chronoshift"
+    weapon_name = "none"
     
     for item in gear:
         item_name = sanitize_name(item.get("name", "item"))
@@ -473,16 +487,30 @@ def generate_simc_profile(character_data, options=None):
             if wkey.lower() in raw_iname.lower():
                 weapon_name = WEAPON_MAP[wkey]
 
-    # Add +100 base primary stat for UI display
+    # Primary Stat Mapping for All Classes
     hero_key = (hero_type or "rime").lower()
-    if hero_key in ["rime", "aeona", "elarion"]:
-        attrs["Intellect"] += 100
+    if hero_key in ["rime", "aeona", "ardeos"]:
+        primary_stat_name = "Intellect"
     elif hero_key in ["tariq", "xavian", "gunde"]:
-        attrs["Strength"] += 100
-    elif hero_key in ["mara", "ardeos"]:
-        attrs["Agility"] += 100
+        primary_stat_name = "Strength"
+    elif hero_key in ["mara", "elarion"]:
+        primary_stat_name = "Agility"
     else:
-        attrs["Intellect"] += 100
+        primary_stat_name = "Intellect"
+
+    # Use sheet_stats from combatantInfo if populated, else fallback to affix sum + 100 base
+    if sheet_stats.get(primary_stat_name, 0) > 0 or sheet_stats.get("Stamina", 0) > 0:
+        attrs["Intellect"] = sheet_stats["Intellect"]
+        attrs["Strength"] = sheet_stats["Strength"]
+        attrs["Agility"] = sheet_stats["Agility"]
+        attrs["Stamina"] = sheet_stats["Stamina"]
+        attrs["Haste"] = sheet_stats["Haste"]
+        attrs["Expertise"] = sheet_stats["Expertise"]
+        attrs["Critical Strike"] = sheet_stats["Critical Strike"]
+        attrs["Spirit"] = sheet_stats["Spirit"]
+        attrs["Armor"] = sheet_stats["Armor"]
+    else:
+        attrs[primary_stat_name] += 100
 
     # Gem Powers from combatant stats
     gem_powers = {
@@ -657,10 +685,10 @@ def generate_simc_profile(character_data, options=None):
     # Only include gear sets where the player has 2+ pieces equipped (all sets require 2/2)
     active_sets_list = [sval for sval, count in set_counts.items() if count >= 2]
     
-    gear_int = max(0, attrs["Intellect"] - 100) if attrs["Intellect"] >= 100 else attrs["Intellect"]
-    gear_str = max(0, attrs["Strength"] - 100) if attrs["Strength"] >= 100 else attrs["Strength"]
-    gear_agi = max(0, attrs["Agility"] - 100) if attrs["Agility"] >= 100 else attrs["Agility"]
-    gear_stam = attrs["Stamina"]
+    gear_int = max(0, attrs["Intellect"] - 100) if primary_stat_name == "Intellect" else attrs["Intellect"]
+    gear_str = max(0, attrs["Strength"] - 100) if primary_stat_name == "Strength" else attrs["Strength"]
+    gear_agi = max(0, attrs["Agility"] - 100) if primary_stat_name == "Agility" else attrs["Agility"]
+    gear_stam = max(0, attrs["Stamina"] - 100) if attrs["Stamina"] >= 100 else attrs["Stamina"]
     gear_haste = attrs["Haste"]
     gear_exp = attrs["Expertise"]
     gear_crit = attrs["Critical Strike"]
@@ -695,11 +723,17 @@ def generate_simc_profile(character_data, options=None):
     lines.append("")
 
     # Weapon & Traits
-    lines.append(f"# Equipped Weapon & Weapon Traits")
-    lines.append(f"weapon={weapon_name}")
-    for tname, trank in trait_counts.items():
-        lines.append(f"weapon_trait.{tname}={trank}")
-    lines.append("")
+    if weapon_name and weapon_name != "none":
+        lines.append(f"# Equipped Weapon & Weapon Traits")
+        lines.append(f"weapon={weapon_name}")
+        for tname, trank in trait_counts.items():
+            lines.append(f"weapon_trait.{tname}={trank}")
+        lines.append("")
+    elif trait_counts:
+        lines.append(f"# Weapon Traits")
+        for tname, trank in trait_counts.items():
+            lines.append(f"weapon_trait.{tname}={trank}")
+        lines.append("")
     
     # Gear Items (without affixes — affixes all go on trinket2/relic2)
     if gear_items_output:
