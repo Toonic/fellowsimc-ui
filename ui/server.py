@@ -110,7 +110,10 @@ class SimulationManager:
                 self.running = False
                 return False, f"simc executable not found. Looked in {root_dir} and {os.path.join(root_dir, 'simc-engine')}."
 
-            cmd = [simc_exe, "custom_sim.simc", "html=latest_sim.html", "output=latest_sim.txt"]
+            if not sys.platform.startswith("win") and simc_exe.lower().endswith(".exe"):
+                cmd = ["wine", simc_exe, "custom_sim.simc", "html=latest_sim.html", "output=latest_sim.txt", "json2=latest_sim.json"]
+            else:
+                cmd = [simc_exe, "custom_sim.simc", "html=latest_sim.html", "output=latest_sim.txt", "json2=latest_sim.json"]
             try:
                 self.proc = subprocess.Popen(cmd, cwd=run_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
             except Exception as e:

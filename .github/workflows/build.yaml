@@ -45,6 +45,7 @@ jobs:
             Copy-Item simc.exe release-package\simc.exe
           }
           if (Test-Path start_ui.bat) { Copy-Item start_ui.bat release-package\ }
+          if (Test-Path start_ui.sh) { Copy-Item start_ui.sh release-package\ }
           if (Test-Path apl) {
             New-Item -ItemType Directory -Force -Path release-package\apl
             Get-ChildItem -Path apl -Exclude "development" | Copy-Item -Destination release-package\apl -Recurse -Force
@@ -58,56 +59,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: simc-windows-build
-          path: release-package/
-
-  build-linux:
-    name: Test Build Linux (x64)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Fetch simc-engine (Fast Shallow Clone)
-        run: |
-          if [ ! -d "simc-engine/engine" ]; then
-            git clone --depth 1 https://github.com/FellowSimc/fellowsimc.git simc-engine
-          fi
-
-      - name: Install Linux Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcurl4-openssl-dev build-essential cmake
-
-      - name: Build Engine (Linux)
-        run: |
-          cmake -B simc-engine/build -S simc-engine -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF
-          cmake --build simc-engine/build --config Release -j$(nproc)
-
-      - name: Package build
-        run: |
-          mkdir -p release-package
-          if [ -f simc-engine/build/simc ]; then
-            cp simc-engine/build/simc release-package/simc
-          elif [ -f simc-engine/build/bin/simc ]; then
-            cp simc-engine/build/bin/simc release-package/simc
-          elif [ -f simc-engine/engine/simc ]; then
-            cp simc-engine/engine/simc release-package/simc
-          elif [ -f simc ]; then
-            cp simc release-package/simc
-          fi
-          if [ -f start_ui.sh ]; then cp start_ui.sh release-package/start_ui.sh; fi
-          chmod +x release-package/simc release-package/start_ui.sh 2>/dev/null || true
-          mkdir -p release-package/apl
-          if [ -d apl ]; then
-            rsync -av --exclude="development" apl/ release-package/apl/
-          fi
-          if [ -d profiles ]; then cp -r profiles release-package/; fi
-          cp -r ui release-package/
-          find release-package/ui -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-          rm -f release-package/ui/*config.json 2>/dev/null || true
-
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: simc-linux-build
           path: release-package/

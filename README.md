@@ -14,15 +14,18 @@
 ## Quick Start (Running via Releases)
 
 ### Prerequisites
-* **Windows 64-bit**
+* **Windows 64-bit** OR **Linux (via Wine)**
 * **Python 3.8+** installed ([python.org](https://www.python.org/downloads/)) — *ensure you check **"Add Python to PATH"** during setup.*
+* **Linux Users**: **Wine** installed (`sudo apt install wine` or `sudo pacman -S wine`).
 
 ---
 
 ### Step-by-Step Instructions
 1. Download the latest **`simc-windows.zip`** from the **[Releases](https://github.com/Toonic/fellowsimc-ui/releases)** page on GitHub.
 2. Extract `simc-windows.zip` into any folder on your computer.
-3. Double-click **`start_ui.bat`** in the extracted folder.
+3. Launch the application:
+   * **Windows**: Double-click **`start_ui.bat`**.
+   * **Linux**: Open a terminal in the folder and run **`./start_ui.sh`** (or `bash start_ui.sh`).
 4. Open your web browser and navigate to: [http://localhost:5000](http://localhost:5000)
 
 ---
