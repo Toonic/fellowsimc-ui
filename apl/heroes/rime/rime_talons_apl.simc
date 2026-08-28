@@ -1,0 +1,57 @@
+# ====================================================================
+# Rime - Icy Talons Build Action Priority List
+# Solved from Wyrmheart +82 Dungeon Optimization
+# ====================================================================
+
+# Precombat
+actions.precombat=snapshot_stats
+actions.precombat+=/frost_bolt
+
+# Main Dispatcher
+actions=run_action_list,name=talons
+
+# --------------------------------------------------------------------
+# Priority 1: Major Off-GCD Cooldowns & Amplifiers (Keep strictly on CD!)
+# --------------------------------------------------------------------
+actions.talons=ice_blitz
+actions.talons+=/winters_blessing
+actions.talons+=/flight_of_the_navir
+actions.talons+=/cold_snap,if=cooldown.chronoshift.up&worb<5&!buff.glacial_assault.at_max_stacks
+actions.talons+=/chronoshift,if=(spirit>=70|spirit>=85|buff.ice_blitz.up|fight_remains<=30)&(cooldown.cold_snap.charges=0|worb>=5)&target.time_to_die>=10
+actions.talons+=/wrath_of_winter,if=(target.time_to_die>=18|fight_remains<=20)&(buff.ice_blitz.up|spirit>=85)
+actions.talons+=/icicles_of_anzhyr,if=!raid_event.adds.exists|active_enemies%2>=raid_event.adds.count|raid_event.adds.in>=12
+actions.talons+=/voidbringers_touch,if=!debuff.voidbringer_accumulator.up
+
+# --------------------------------------------------------------------
+# Priority 2: Keep Winter's Embrace Active & Prime Spenders (Bursting Ice on Cooldown)
+# --------------------------------------------------------------------
+actions.talons+=/bursting_ice
+
+# --------------------------------------------------------------------
+# Priority 3: FREE 5-Orb Glacial Assault Procs (0 Winter Orb Cost - Spend First!)
+# --------------------------------------------------------------------
+actions.talons+=/talon_strike,if=buff.glacial_assault.at_max_stacks
+actions.talons+=/glacial_blast,if=buff.glacial_assault.at_max_stacks
+
+# --------------------------------------------------------------------
+# Priority 4: 5-Orb Spenders & Undulating Spirit 100% Refunds (Spend to Prevent Capping)
+# --------------------------------------------------------------------
+actions.talons+=/rising_talons,if=worb>=5&active_enemies>=4
+actions.talons+=/talon_strike,if=worb>=5
+actions.talons+=/ice_comet,if=active_enemies>=2&worb>=5
+
+# --------------------------------------------------------------------
+# Priority 5: COLD SNAP (Always cast unless at 5 orbs or GA proc queued!)
+# --------------------------------------------------------------------
+actions.talons+=/cold_snap,if=worb<5&!buff.glacial_assault.at_max_stacks
+
+# --------------------------------------------------------------------
+# Priority 6: Builder Filler (Freezing Torrent at low orbs when Cold Snap on CD)
+# --------------------------------------------------------------------
+actions.talons+=/freezing_torrent,if=worb<=3&cooldown.cold_snap.charges=0&target.time_to_die>=3
+actions.talons+=/natures_fury
+
+# --------------------------------------------------------------------
+# Priority 7: Base Filler (Frost Bolt)
+# --------------------------------------------------------------------
+actions.talons+=/frost_bolt

@@ -1,0 +1,62 @@
+name: Build (test)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Test Build Windows (x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch simc-engine (Fast Shallow Clone)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "simc-engine/engine")) {
+            git clone --depth 1 https://github.com/FellowSimc/fellowsimc.git simc-engine
+          }
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Engine (Windows)
+        run: |
+          cd simc-engine
+          if (Test-Path simc_vs2026.sln) {
+            msbuild simc_vs2026.sln /p:Configuration=Release /p:Platform=x64
+          } else {
+            msbuild simc_vs2022.sln /p:Configuration=Release /p:Platform=x64
+          }
+          cd ..
+
+      - name: Package build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-package
+          if (Test-Path simc-engine\bin\x64\Release\simc.exe) {
+            Copy-Item simc-engine\bin\x64\Release\simc.exe release-package\simc.exe
+          } elseif (Test-Path simc-engine\build\Release\simc.exe) {
+            Copy-Item simc-engine\build\Release\simc.exe release-package\simc.exe
+          } elseif (Test-Path simc-engine\simc.exe) {
+            Copy-Item simc-engine\simc.exe release-package\simc.exe
+          } elseif (Test-Path simc.exe) {
+            Copy-Item simc.exe release-package\simc.exe
+          }
+          if (Test-Path start_ui.bat) { Copy-Item start_ui.bat release-package\ }
+          if (Test-Path start_ui.sh) { Copy-Item start_ui.sh release-package\ }
+          if (Test-Path apl) {
+            New-Item -ItemType Directory -Force -Path release-package\apl
+            Get-ChildItem -Path apl -Exclude "development" | Copy-Item -Destination release-package\apl -Recurse -Force
+          }
+          if (Test-Path profiles) { Copy-Item -Recurse profiles release-package\profiles }
+          Copy-Item -Recurse ui release-package\ui
+          Remove-Item -Recurse -Force release-package\ui\__pycache__ -ErrorAction SilentlyContinue
+          Remove-Item -Force release-package\ui\*config.json -ErrorAction SilentlyContinue
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simc-windows-build
+          path: release-package/

@@ -1,0 +1,240 @@
+# report_details=1
+# optimal_raid=0
+# # max_time=420
+# # max_time=50
+# max_time=250
+# # max_time=60
+# target_error=0.1
+# iterations=150
+# chart_show_relative_difference=1
+# vary_combat_length=0.1
+# single_actor_batch=1
+# max_time=720
+# desired_targets=12
+# relative_difference_base="Mara Bleed FTS"
+
+# apl/chuey_dungeon.simc
+
+# apl/dungeon.simc
+
+# scale_only=crit,haste,mastery,vers,agility
+# scale_agility=10
+# scale_crit_rating=210
+# scale_haste_rating=210
+# scale_mastery_rating=210
+# scale_versatility_rating=210
+# positive_scale_delta=1
+# calculate_scale_factors=1
+# dps_plot_stat=haste,crit_rating
+# #,mastery,versatility
+# # dps_plot_stat=haste:0,mastery:0,crit:0,versatility:0
+# dps_plot_points=6
+# dps_plot_step=41
+# dps_plot_positive=0
+
+
+# optimal_raid=0
+# fight_style=dungeonroute
+# max_time=7200
+# vary_combat_length=0.0
+# enemy=Dummy
+# raid_events=pull,pull=01,delay=5,enemies="BOSS_1tar":800000:Humanoid
+# # raid_events+=/pull,pull=02,delay=315,shared_health=0,enemies="PRIO_fat_man":3000000:Humanoid:1|"11t":1500000:Humanoid:11
+# raid_events+=/pull,pull=02,delay=300,shared_health=1,enemies="12t":300000:Humanoid:12
+# raid_events+=/resource,pull=02,resource=spirit,reset_to_initial=1,cooldown=10101010
+# raid_events+=/resource,pull=02,resource=combo_points,reset_to_initial=1,cooldown=10101010
+
+
+
+mara="Mara Bleed FTS"
+level=80
+
+apl/mara/mara.simc
+
+
+
+# head=hat,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=expertise/haste
+# shoulder=shoulder,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=crit/primary
+# back=back,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/crit
+# chest=chest,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=primary/crit
+# hands=hands,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=crit/primary
+# legs=legs,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=haste/primary
+# feet=feet,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=haste/haste
+
+# neck=neck,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=haste/haste
+# wrist=wrists,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/expertise
+
+# finger1=ring1,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=primary/expertise
+# finger2=ring2,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=crit/expertise
+# trinket1=relic1,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=crit/haste
+# trinket2=relic2,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=haste/haste
+
+# main_hand=weap,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise,fixed_secondary=primary/haste
+
+# # More normal haste
+
+# head=hat,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=expertise/crit
+# shoulder=shoulder,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise,fixed_secondary=expertise/crit
+# back=back,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise,fixed_secondary=expertise/primary
+# chest=chest,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/primary
+# hands=hands,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=expertise/crit
+# legs=legs,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/expertise
+# feet=feet,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/primary
+
+# neck=neck,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=expertise/spirit
+# wrist=wrists,rarity=legendary,variant=evens,ilevel=360,main_secondary=crit,fixed_secondary=expertise/primary
+
+# # finger1=ring1,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=primary/expertise,affixes=the_trickster/the_trickster
+# # finger2=ring2,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=primary/primary,affixes=the_trickster/the_trickster
+# # trinket1=relic1,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=crit/expertise,affixes=subduer/subduer/subduer/subduer
+# finger1=ring1,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=primary/expertise
+# finger2=ring2,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=primary/primary
+# trinket1=relic1,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=crit/expertise,affixes=subduer/subduer/subduer/subduer/the_trickster/the_trickster/the_trickster/the_trickster
+# trinket2=relic2,rarity=regal,variant=evens,ilevel=315,main_secondary=spirit/crit,fixed_secondary=haste/haste
+
+# main_hand=weap,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise,fixed_secondary=haste/primary,affixes=spirit/spirit
+
+
+
+
+# Big time haste
+
+head=hat,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=expertise/crit
+shoulder=shoulder,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=expertise/crit
+back=back,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=expertise/primary
+chest=chest,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=primary/primary,affixes=haste
+hands=hands,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=expertise/crit
+legs=legs,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=primary/expertise
+feet=feet,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=primary/primary
+
+neck=neck,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=expertise/haste
+wrist=wrists,rarity=legendary,variant=evens,ilevel=360,main_secondary=crit,fixed_secondary=expertise/primary
+
+# finger1=ring1,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=primary/expertise,affixes=the_trickster/the_trickster
+# finger2=ring2,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=primary/primary,affixes=the_trickster/the_trickster
+# trinket1=relic1,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise/crit,fixed_secondary=crit/expertise,affixes=subduer/subduer/subduer/subduer
+finger1=ring1,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=crit/expertise
+finger2=ring2,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=crit/crit
+trinket1=relic1,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=crit/expertise,affixes=the_wayfarer/the_wayfarer/the_wayfarer/the_wayfarer/the_trickster/the_trickster/the_trickster/the_trickster
+trinket2=relic2,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/crit,fixed_secondary=crit/crit
+
+main_hand=weap,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise,fixed_secondary=crit/crit,affixes=crit/crit
+
+
+# weapon=fated_strike
+weapon=sahrils_wrath
+
+
+
+sets.draconic_might=1
+
+weapon_trait.seized_opportunity=4
+
+# gems.ruby_power=500
+gems.amethyst_power=500
+gems.emerald_power=500
+
+sets.seal_of_the_heskyr=1
+
+# 4  in sets
+
+# 8 in blessings
+
+# 23 mods left
+
+weapon_trait.emerald_judgement=2
+
+# 21 mods left
+
+weapon_trait.amethyst_splinters=4
+
+# 17 mods left
+
+sets.deaths_grasp=1
+
+# 15 mods left
+
+weapon_trait.visions_of_grandeur=1
+
+# 14 mods left
+
+sets.drakheims_absolution=1
+
+# 12 mods left
+
+weapon_trait.hunters_focus=4
+
+# 10 mods left
+
+weapon_trait.martial_initiative=2
+
+# 9 mods left
+
+gems.sapphire_power=1200
+
+# 2 mods left
+
+
+legendary.from_the_shadows=1
+legendary.drenched_in_blood=0
+legendary.vexiras_venom=0
+
+# copy="Axel Bleed","Mara Bleed FTS"
+talents=red_ledger:1/bloodrush:1/gushing_blood:1/maidens_doom:1/seething_burst:1/hemotoxin_old:1/sinners_pride:1/caustic_wounds:1
+
+
+mara="Mara Spirit Bleed FTS"
+level=80
+
+apl/mara/mara.simc
+
+head=hat,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/primary
+shoulder=shoulder,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/primary
+back=back,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=haste/haste
+chest=chest,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=primary/primary
+hands=hands,rarity=regal,variant=evens,ilevel=315,main_secondary=crit,fixed_secondary=expertise/expertise
+legs=legs,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=haste/haste
+feet=feet,rarity=regal,variant=evens,ilevel=315,main_secondary=haste,fixed_secondary=expertise/expertise
+
+neck=neck,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/spirit,fixed_secondary=haste/haste
+wrist=wrists,rarity=legendary,variant=evens,ilevel=360,main_secondary=haste,fixed_secondary=primary/primary
+
+finger1=ring1,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/spirit,fixed_secondary=spirit/spirit
+finger2=ring2,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/spirit,fixed_secondary=spirit/spirit
+trinket1=relic1,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/spirit,fixed_secondary=spirit/spirit,affixes=the_wayfarer/the_wayfarer/the_wayfarer/the_wayfarer/the_trickster/the_trickster/the_trickster/the_trickster/the_philosopher/the_philosopher/the_philosopher/the_philosopher/the_mystic/the_mystic/the_mystic/the_mystic
+trinket2=relic2,rarity=regal,variant=evens,ilevel=315,main_secondary=haste/spirit,fixed_secondary=spirit/spirit
+
+main_hand=weap,rarity=regal,variant=evens,ilevel=315,main_secondary=expertise,fixed_secondary=haste/haste
+
+talents=red_ledger:1/bloodrush:1/gushing_blood:1/maidens_doom:1/seething_burst:1/hemotoxin_old:1/sinners_pride:1/caustic_wounds:1
+
+legendary.from_the_shadows=1
+legendary.drenched_in_blood=0
+legendary.vexiras_venom=0
+
+
+# weapon=fated_strike
+weapon=sahrils_wrath
+
+gems.amethyst_power=500
+gems.emerald_power=500
+gems.sapphire_power=1200
+
+sets.drakheims_absolution=1
+sets.seal_of_the_heskyr=1
+sets.dark_prophecy=1
+sets.deaths_grasp=1
+
+weapon_trait.amethyst_splinters=4
+weapon_trait.visions_of_grandeur=1
+weapon_trait.emerald_judgement=1
+weapon_trait.martial_initiative=1
+
+weapon_trait.hunters_focus=4
+weapon_trait.seized_opportunity=1
+
+# 16 Blessing
+# 2 Attunements
+# 4 Sets (8 Aff)
+# 7 Majors
+# 5 Heroics

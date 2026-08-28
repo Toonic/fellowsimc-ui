@@ -1,0 +1,34 @@
+# ====================================================================
+# Rime Base Action Priority List Router
+# Automatically routes to the optimal APL based on active talents:
+#   1. Icy Talons Build      (talent.icy_talons)
+#   2. Soulfrost Torrent     (talent.soulfrost_torrent)
+#   3. Frostweaver's Wrath   (talent.frostweavers_wrath)
+# ====================================================================
+
+actions.precombat=snapshot_stats
+actions.precombat+=/frost_bolt
+
+# --------------------------------------------------------------------
+# Main APL Routing Dispatcher
+# --------------------------------------------------------------------
+actions=run_action_list,name=talons,if=talent.icy_talons
+actions+=/run_action_list,name=soulfrost,if=talent.soulfrost_torrent
+actions+=/run_action_list,name=frostweaver,if=talent.frostweavers_wrath
+# Default fallback:
+actions+=/run_action_list,name=talons
+
+# --------------------------------------------------------------------
+# 1. Talons Build Action List (Midpls Wyrmheart Solved)
+# --------------------------------------------------------------------
+apl/rime/rime_talons_apl.simc
+
+# --------------------------------------------------------------------
+# 2. Soulfrost Torrent Action List (Placeholder -> Talons)
+# --------------------------------------------------------------------
+actions.soulfrost=run_action_list,name=talons
+
+# --------------------------------------------------------------------
+# 3. Frostweaver's Wrath Action List (Placeholder -> Talons)
+# --------------------------------------------------------------------
+actions.frostweaver=run_action_list,name=talons

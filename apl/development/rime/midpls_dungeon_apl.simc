@@ -1,0 +1,56 @@
+# ====================================================================
+# Midpls Playstyle Dungeon APL for Rime
+# Tuned from Wyrmheart +82 (Fight 32)
+# ====================================================================
+
+actions.precombat=snapshot_stats
+actions.precombat+=/frost_bolt
+
+actions+=/run_action_list,name=main
+
+# --------------------------------------------------------------------
+# Priority 1: Major Off-GCD Cooldowns & Amplifiers (Keep strictly on CD!)
+# --------------------------------------------------------------------
+actions.main=ice_blitz
+actions.main+=/winters_blessing
+actions.main+=/flight_of_the_navir
+actions.main+=/cold_snap,if=cooldown.chronoshift.up&worb<5&!buff.glacial_assault.at_max_stacks
+actions.main+=/chronoshift,if=(spirit>=70|spirit>=85|buff.ice_blitz.up|fight_remains<=30)&(cooldown.cold_snap.charges=0|worb>=5)&target.time_to_die>=10
+actions.main+=/wrath_of_winter,if=(target.time_to_die>=18|fight_remains<=20)&(buff.ice_blitz.up|spirit>=85)
+actions.main+=/icicles_of_anzhyr,if=!raid_event.adds.exists|active_enemies%2>=raid_event.adds.count|raid_event.adds.in>=12
+actions.main+=/voidbringers_touch,if=!debuff.voidbringer_accumulator.up
+
+# --------------------------------------------------------------------
+# Priority 2: Keep Winter's Embrace Active & Prime Spenders (Bursting Ice on Cooldown)
+# --------------------------------------------------------------------
+actions.main+=/bursting_ice
+
+# --------------------------------------------------------------------
+# Priority 3: FREE 5-Orb Glacial Assault Procs (0 Winter Orb Cost - Spend First!)
+# --------------------------------------------------------------------
+actions.main+=/talon_strike,if=buff.glacial_assault.at_max_stacks
+actions.main+=/glacial_blast,if=buff.glacial_assault.at_max_stacks
+
+# --------------------------------------------------------------------
+# Priority 4: 5-Orb Spenders & Undulating Spirit 100% Refunds (Spend to Prevent Capping)
+# --------------------------------------------------------------------
+actions.main+=/rising_talons,if=worb>=5&active_enemies>=4
+actions.main+=/talon_strike,if=worb>=5
+actions.main+=/ice_comet,if=active_enemies>=2&worb>=5
+
+# --------------------------------------------------------------------
+# Priority 5: COLD SNAP (Always cast unless at 5 orbs or GA proc queued!)
+# --------------------------------------------------------------------
+actions.main+=/cold_snap,if=worb<5&!buff.glacial_assault.at_max_stacks
+
+# --------------------------------------------------------------------
+# Priority 6: Builder Filler (Freezing Torrent at low orbs when Cold Snap on CD)
+# --------------------------------------------------------------------
+actions.main+=/freezing_torrent,if=worb<=3&cooldown.cold_snap.charges=0&target.time_to_die>=3
+actions.main+=/natures_fury
+
+# --------------------------------------------------------------------
+# Priority 8: Base Filler (Frost Bolt)
+# --------------------------------------------------------------------
+actions.main+=/frost_bolt
+

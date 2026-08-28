@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FellowSimc - Fellowship Character Importer & Simulator</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-text">
+          <h1><span class="brand-white">FELLOW</span><span class="brand-gold">SIMC</span></h1>
+          <span class="brand-subtitle">FELLOWSHIP CHARACTER IMPORTER & SIMULATOR</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="connection-status" class="status-badge unconfigured" title="Click to configure FellowshipLogs API Keys">
+          <span class="status-dot"></span>
+          <span class="status-text">API NOT CONFIGURED</span>
+        </div>
+        <button id="btn-settings" class="btn btn-secondary" title="API Settings">API KEYS</button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="tab-importer">1. LOG IMPORTER</button>
+      <button class="nav-tab" data-tab="tab-hero">2. HERO & LOADOUT</button>
+      <button class="nav-tab" data-tab="tab-modes">3. MODES</button>
+      <button class="nav-tab" data-tab="tab-advanced">4. ADVANCED & APL</button>
+      <button class="nav-tab" data-tab="tab-results">5. SIMULATE & RESULTS</button>
+    </nav>
+
+    <!-- Main Content Area (Tabs loaded modularly from tabs/*.html) -->
+    <main class="main-content" id="main-content">
+      <!-- 1. Log Importer (tabs/tab_importer.html) -->
+      <!-- 2. Hero & Loadout (tabs/tab_hero.html) -->
+      <!-- 3. Modes (tabs/tab_modes.html) -->
+      <!-- 4. Advanced & APL (tabs/tab_advanced.html) -->
+      <!-- 5. Simulate & Results (tabs/tab_results.html) -->
+    </main>
+
+    <!-- Themed Notice / Error Modal -->
+    <div id="modal-notice" class="modal-overlay hidden" style="display: none;" onclick="if(event.target === this) { this.classList.add('hidden'); this.style.display = 'none'; }">
+      <div class="modal-card modal-notice-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 id="modal-notice-title">API NOT CONFIGURED</h3>
+          <button type="button" id="btn-close-notice" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="notice-message-container">
+            <div class="notice-icon-badge error" id="notice-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
+            <p id="modal-notice-message" style="margin-bottom: 0;">FellowshipLogs API Key is not configured. Please enter your Client ID and Client Secret in API Settings.</p>
+          </div>
+        </div>
+        <div class="modal-footer" id="modal-notice-footer" style="gap: 10px;">
+          <button type="button" id="btn-notice-dismiss" class="btn btn-secondary">DISMISS</button>
+          <button type="button" id="btn-notice-action" class="btn btn-primary">CONFIGURE API KEYS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Keys Modal -->
+    <div id="modal-settings" class="modal-overlay hidden" style="display: none;" onclick="if(event.target === this) { this.classList.add('hidden'); this.style.display = 'none'; }">
+      <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3>FELLOWSHIPLOGS API CONFIGURATION</h3>
+          <button type="button" id="btn-close-modal" class="btn-close" onclick="const m=document.getElementById('modal-settings'); if(m){ m.classList.add('hidden'); m.style.display='none'; }">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>Enter your Client ID and Client Secret from <a href="https://www.fellowshiplogs.com/profile" target="_blank">fellowshiplogs.com/profile</a>.</p>
+          <div class="form-group">
+            <label for="cfg-client-id">Client ID</label>
+            <input type="text" id="cfg-client-id" class="form-input" placeholder="Enter Client ID...">
+          </div>
+          <div class="form-group">
+            <label for="cfg-client-secret">Client Secret</label>
+            <input type="password" id="cfg-client-secret" class="form-input" placeholder="Enter Client Secret...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btn-save-credentials" class="btn btn-primary">SAVE CREDENTIALS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

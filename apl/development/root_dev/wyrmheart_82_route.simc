@@ -1,0 +1,25 @@
+# ====================================================================
+# Wyrmheart +82 Dungeon Route
+# Extracted from Fellowship Logs Report: yLzJ8M391AwYfVTK (Fight 32)
+# Player: Midpls (Rime) | Time: 12:31 (757s)
+# ====================================================================
+
+fight_style=DungeonRoute
+max_time=800
+enemy="Wyrmheart"
+ignore_invulnerable_targets=1
+
+# --------------------------------------------------------------------
+# Pull 1: Start Area & Spellbound Golem (Duration: ~305s)
+# --------------------------------------------------------------------
+raid_events+=/pull,pull=1,delay=000,enemies="PRIO_Spellbound_Golem":1820000|"PRIO_Eldrin_Sentinel_1":728000|"PRIO_Eldrin_Sentinel_2":728000|"PRIO_Eldrin_Sentinel_3":728000|"Blade_of_Cithrel_1":494000|"Blade_of_Cithrel_2":494000|"Blade_of_Cithrel_3":494000|"Blade_of_Cithrel_4":494000|"Tundra_Stalker_1":468000|"Tundra_Stalker_2":468000|"Tundra_Stalker_3":468000|"Coldheart_Assassin":442000|"Eldrin_Chronomancer":442000|"Frozen_Remnant_1":260000|"Frozen_Remnant_2":260000|"Frozen_Remnant_3":260000|"Frozen_Remnant_4":260000|"Frozen_Remnant_5":260000|"Expedition_Lookout_1":208000|"Expedition_Lookout_2":208000|"Eldrin_Recruit_1":182000|"Eldrin_Recruit_2":182000|"Eldrin_Recruit_3":182000|"Eldrin_Recruit_4":182000|"Eldrin_Recruit_5":182000|"Eldrin_Recruit_6":182000|"Eldrin_Recruit_7":182000|"Eldrin_Recruit_8":182000|"Eldrin_Recruit_9":182000|"Eldrin_Recruit_10":182000|"Eldrin_Recruit_11":182000|"Eldrin_Recruit_12":182000|"Eldrin_Recruit_13":182000|"Eldrin_Recruit_14":182000|"Eldrin_Recruit_15":182000|"Eldrin_Recruit_16":182000|"Eldrin_Recruit_17":182000|"Eldrin_Recruit_18":182000|"Eldrin_Recruit_19":182000|"Ice_Shardling_1":104000|"Ice_Shardling_2":104000|"Ice_Shardling_3":104000|"Ice_Shardling_4":104000|"Ice_Shardling_5":104000|"Ice_Shardling_6":104000|"Ice_Shardling_7":104000|"Ice_Shardling_8":104000|"Ice_Shardling_9":104000|"Ice_Shardling_10":104000|"Ice_Shardling_11":104000|"Ice_Shardling_12":104000|"Ice_Shardling_13":104000|"Ice_Shardling_14":104000|"Ice_Shardling_15":104000|"Ice_Shardling_16":104000|"Ice_Shardling_17":104000|"Ice_Shardling_18":104000
+
+# --------------------------------------------------------------------
+# Pull 2: Deep Caves & Ghorn the Avalanche (Duration: ~178s)
+# --------------------------------------------------------------------
+raid_events+=/pull,pull=2,delay=003,enemies="BOSS_Ghorn_the_Avalanche":3250000|"PRIO_Eldrin_Sentinel_1":700000|"PRIO_Eldrin_Sentinel_2":700000|"PRIO_Eldrin_Sentinel_3":700000|"PRIO_Eldrin_Sentinel_4":700000|"Blade_of_Cithrel_1":475000|"Blade_of_Cithrel_2":475000|"Blade_of_Cithrel_3":475000|"Blade_of_Cithrel_4":475000|"Blade_of_Cithrel_5":475000|"Blade_of_Cithrel_6":475000|"Eldrin_Recruit_1":175000|"Eldrin_Recruit_2":175000|"Eldrin_Recruit_3":175000|"Eldrin_Recruit_4":175000|"Eldrin_Recruit_5":175000|"Eldrin_Recruit_6":175000|"Eldrin_Recruit_7":175000|"Eldrin_Recruit_8":175000|"Eldrin_Recruit_9":175000|"Eldrin_Recruit_10":175000|"Eldrin_Recruit_11":175000|"Eldrin_Recruit_12":175000|"Eldrin_Recruit_13":175000|"Eldrin_Recruit_14":175000|"Eldrin_Recruit_15":175000|"Eldrin_Recruit_16":175000|"Eldrin_Recruit_17":175000|"Eldrin_Recruit_18":175000|"Eldrin_Recruit_19":175000|"Eldrin_Recruit_20":175000|"Eldrin_Recruit_21":175000|"Eldrin_Recruit_22":175000|"Eldrin_Recruit_23":175000
+
+# --------------------------------------------------------------------
+# Pull 3: Final Encounter - Apostate Veras (Duration: ~229s)
+# --------------------------------------------------------------------
+raid_events+=/pull,pull=3,delay=003,enemies="BOSS_Apostate_Veras":6875000

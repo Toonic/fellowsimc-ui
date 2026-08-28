@@ -1,0 +1,215 @@
+report_details=1
+optimal_raid=0
+# max_time=420
+# max_time=290
+target_error=0.1
+iterations=100000
+chart_show_relative_difference=1
+vary_combat_length=0
+single_actor_batch=1
+
+max_time=720
+desired_targets=1
+# desired_targets=16
+
+
+# apl/chuey_dungeon.simc
+
+# apl/dungeon.simc
+relative_difference_base="Initial Stat Spread"
+
+ardeos="Initial Stat Spread"
+level=80
+
+apl/ardeos/ardeos_apl.simc
+
+# head=hat,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/haste/spirit
+# neck=neck,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+# shoulder=shoulder,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+# back=back,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/crit
+# chest=chest,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/expertise,affixes=primary/primary/primary
+# wrist=wrists,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+# hands=hands,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+# legs=legs,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+# feet=feet,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary
+# finger1=ring1,ilevel=420,main_secondary=haste,fixed_secondary=haste/expertise
+# finger2=ring2,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+# trinket1=relic1,ilevel=420,main_secondary=spirit,fixed_secondary=crit/expertise
+# trinket2=relic2,ilevel=420,main_secondary=spirit,fixed_secondary=crit/expertise
+# main_hand=weap,variant=evens,ilevel=420,main_secondary=spirit,fixed_secondary=expertise/crit,affixes=crit/expertise
+
+head=hat,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/haste/haste
+neck=neck,ilevel=420,main_secondary=haste,fixed_secondary=haste/haste
+shoulder=shoulder,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/crit
+back=back,variant=evens,ilevel=420,main_secondary=crit,fixed_secondary=haste/crit
+chest=chest,variant=evens,ilevel=420,main_secondary=crit,fixed_secondary=primary/expertise,affixes=primary/primary/primary
+wrist=wrists,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+hands=hands,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/crit
+legs=legs,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/haste
+feet=feet,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary
+finger1=ring1,ilevel=420,main_secondary=haste,fixed_secondary=haste/expertise
+finger2=ring2,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+trinket2=relic2,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+main_hand=weap,variant=evens,ilevel=420,main_secondary=crit,fixed_secondary=expertise/crit,affixes=crit/expertise/the_herald/the_herald/the_herald/the_herald
+
+# gems.sapphire_power=2640
+
+weapon=chronoshift
+# weapon=voidbringers_touch
+
+gems.sapphire_power=600
+gems.amethyst_power=1500
+gems.ruby_power=100
+gems.emerald_power=600
+weapon_trait.emerald_judgement=1
+weapon_trait.martial_initiative=1
+weapon_trait.visions_of_grandeur=4
+
+
+
+legendary.fire_toad=0
+legendary.devouring_flame=1
+legendary.explosivo=0
+legendary.explosivo_boss_bonus=1.5
+legendary.explosivo_adds_bonus=0.5
+
+talents=/undying_flame:1/slow_burn:1/crackling_inferno:1/intensifying_inferno:1/flare_up:1/rolling_flames:1/burning_initiative:1/apocalyptic_surge:1/cascading_inferno:1
+# talents=/undying_flame:1/slow_burn:1/crackling_inferno:1/intensifying_inferno:1/flare_up:1/rolling_flames:1/burning_initiative:1/firestarter:1
+
+copy="the_intrepid1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_intrepid
+
+copy="the_intrepid4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_intrepid/the_intrepid/the_intrepid/the_intrepid
+
+copy="the_trickster1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_trickster
+
+copy="the_trickster4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_trickster/the_trickster/the_trickster/the_trickster
+
+copy="the_celestial1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_celestial
+
+copy="the_celestial4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_celestial/the_celestial/the_celestial/the_celestial
+
+copy="the_sinister1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_sinister
+
+copy="the_sinister4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_sinister/the_sinister/the_sinister/the_sinister
+
+copy="the_heretic1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_heretic
+
+copy="the_heretic4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_heretic/the_heretic/the_heretic/the_heretic
+
+copy="the_philosopher1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_philosopher
+
+copy="the_philosopher4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_philosopher/the_philosopher/the_philosopher/the_philosopher
+
+copy="the_vainglorious1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_vainglorious
+
+copy="the_vainglorious4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_vainglorious/the_vainglorious/the_vainglorious/the_vainglorious
+
+copy="the_wayfarer1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_wayfarer
+
+copy="the_wayfarer4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_wayfarer/the_wayfarer/the_wayfarer/the_wayfarer
+
+copy="the_mystic1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_mystic
+
+copy="the_mystic4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_mystic/the_mystic/the_mystic/the_mystic
+
+copy="the_monarch1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_monarch
+
+copy="the_monarch4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_monarch/the_monarch/the_monarch/the_monarch
+
+copy="the_usurper1","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_usurper
+
+copy="the_usurper4","Initial Stat Spread"
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_usurper/the_usurper/the_usurper/the_usurper
+
+# copy="the_herald1","Initial Stat Spread"
+# trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_herald
+
+# copy="the_herald4","Initial Stat Spread"
+# trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_herald/the_herald/the_herald/the_herald
+
+
+copy="the_mystic1_SPIRIT","Initial Stat Spread"
+head=hat,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/haste/spirit
+neck=neck,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+shoulder=shoulder,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+back=back,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/crit
+chest=chest,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/expertise,affixes=primary/primary/primary
+wrist=wrists,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+hands=hands,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+legs=legs,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+feet=feet,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary
+finger1=ring1,ilevel=420,main_secondary=haste,fixed_secondary=haste/expertise
+finger2=ring2,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+trinket2=relic2,ilevel=420,main_secondary=spirit,fixed_secondary=crit/expertise
+main_hand=weap,variant=evens,ilevel=420,main_secondary=spirit,fixed_secondary=expertise/crit,affixes=crit/expertise/expertise/the_herald/the_herald/the_herald/the_herald
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_mystic
+
+copy="the_mystic4_SPIRIT","Initial Stat Spread"
+head=hat,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/haste/spirit
+neck=neck,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+shoulder=shoulder,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+back=back,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/crit
+chest=chest,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/expertise,affixes=primary/primary/primary
+wrist=wrists,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+hands=hands,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+legs=legs,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+feet=feet,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary
+finger1=ring1,ilevel=420,main_secondary=haste,fixed_secondary=haste/expertise
+finger2=ring2,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+trinket2=relic2,ilevel=420,main_secondary=spirit,fixed_secondary=crit/expertise
+main_hand=weap,variant=evens,ilevel=420,main_secondary=spirit,fixed_secondary=expertise/crit,affixes=crit/expertise/expertise/the_herald/the_herald/the_herald/the_herald
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_mystic/the_mystic/the_mystic/the_mystic
+
+copy="the_philosopher1_SPIRIT","Initial Stat Spread"
+head=hat,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/haste/spirit
+neck=neck,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+shoulder=shoulder,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+back=back,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/crit
+chest=chest,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/expertise,affixes=primary/primary/primary
+wrist=wrists,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+hands=hands,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+legs=legs,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+feet=feet,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary
+finger1=ring1,ilevel=420,main_secondary=haste,fixed_secondary=haste/expertise
+finger2=ring2,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+trinket2=relic2,ilevel=420,main_secondary=spirit,fixed_secondary=crit/expertise
+main_hand=weap,variant=evens,ilevel=420,main_secondary=spirit,fixed_secondary=expertise/crit,affixes=crit/expertise/expertise/the_herald/the_herald/the_herald/the_herald
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_philosopher
+
+copy="the_philosopher4_SPIRIT","Initial Stat Spread"
+head=hat,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/haste/spirit
+neck=neck,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+shoulder=shoulder,variant=big_secondary,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+back=back,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/crit
+chest=chest,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/expertise,affixes=primary/primary/primary
+wrist=wrists,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+hands=hands,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=haste/spirit
+legs=legs,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary,affixes=primary/primary/spirit
+feet=feet,variant=evens,ilevel=420,main_secondary=haste,fixed_secondary=primary/primary
+finger1=ring1,ilevel=420,main_secondary=haste,fixed_secondary=haste/expertise
+finger2=ring2,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise
+trinket2=relic2,ilevel=420,main_secondary=spirit,fixed_secondary=crit/expertise
+main_hand=weap,variant=evens,ilevel=420,main_secondary=spirit,fixed_secondary=expertise/crit,affixes=crit/expertise/expertise/the_herald/the_herald/the_herald/the_herald
+trinket1=relic1,ilevel=420,main_secondary=haste,fixed_secondary=crit/expertise,affixes=the_philosopher/the_philosopher/the_philosopher/the_philosopher

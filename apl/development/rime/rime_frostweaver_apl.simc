@@ -1,0 +1,53 @@
+# ====================================================================
+# Rime - Frostweaver's Wrath Build Action Priority List
+# ====================================================================
+
+# --------------------------------------------------------------------
+# Precombat
+# --------------------------------------------------------------------
+actions.precombat=snapshot_stats
+actions.precombat+=/frost_bolt
+
+# Main Dispatcher
+actions=run_action_list,name=frostweaver
+
+# --------------------------------------------------------------------
+# Priority 1: Major Off-GCD Cooldowns & Amplifiers (Keep strictly on CD!)
+# --------------------------------------------------------------------
+actions.frostweaver=ice_blitz
+actions.frostweaver+=/winters_blessing,if=worb>=4
+actions.frostweaver+=/flight_of_the_navir
+actions.frostweaver+=/cold_snap,if=cooldown.chronoshift.up&worb<4&!buff.glacial_assault.at_max_stacks
+actions.frostweaver+=/chronoshift,if=(spirit>=70|spirit>=85|buff.ice_blitz.up|fight_remains<=30)&(cooldown.cold_snap.charges=0|worb>=4)&target.time_to_die>=10
+actions.frostweaver+=/wrath_of_winter,if=(target.time_to_die>=18|fight_remains<=20)&(buff.ice_blitz.up|spirit>=85)
+actions.frostweaver+=/icicles_of_anzhyr,if=!raid_event.adds.exists|active_enemies%2>=raid_event.adds.count|raid_event.adds.in>=12
+actions.frostweaver+=/voidbringers_touch,if=!debuff.voidbringer_accumulator.up
+
+# --------------------------------------------------------------------
+# Priority 2: FREE Glacial Assault Procs (0 Winter Orb Cost - Spend First!)
+# --------------------------------------------------------------------
+actions.frostweaver+=/glacial_blast,if=buff.glacial_assault.at_max_stacks
+
+# --------------------------------------------------------------------
+# Priority 3: Winter's Embrace / Bursting Ice Window (Comet / Blast Spam)
+# --------------------------------------------------------------------
+# Pool to 4 Winter Orbs before casting Bursting Ice to maximize spam window
+actions.frostweaver+=/bursting_ice,if=worb>=4
+
+# Inside Winter's Embrace: Spam Ice Comet (AoE) or Glacial Blast (ST) until out of orbs/refunds
+actions.frostweaver+=/ice_comet,if=active_enemies>=2&buff.winters_embrace.up&(worb>=2|buff.undulating_spirit.react)
+actions.frostweaver+=/glacial_blast,if=active_enemies=1&buff.winters_embrace.up&(worb>=2|buff.undulating_spirit.react)
+
+# --------------------------------------------------------------------
+# Priority 4: Max / High Orb Dump (Prevent Capping outside Bursting Ice)
+# --------------------------------------------------------------------
+actions.frostweaver+=/ice_comet,if=active_enemies>=2&worb>=4
+actions.frostweaver+=/glacial_blast,if=active_enemies=1&worb>=4
+
+# --------------------------------------------------------------------
+# Priority 5: Builder Filler (Cold Snap to pool back to 4 Orbs)
+# --------------------------------------------------------------------
+actions.frostweaver+=/cold_snap,if=worb<4&!buff.glacial_assault.at_max_stacks
+actions.frostweaver+=/freezing_torrent,if=worb<=2&cooldown.cold_snap.charges=0&target.time_to_die>=3
+actions.frostweaver+=/natures_fury
+actions.frostweaver+=/frost_bolt

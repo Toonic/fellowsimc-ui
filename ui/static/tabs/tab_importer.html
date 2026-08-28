@@ -1,0 +1,61 @@
+<!-- TAB 1: IMPORTER -->
+<section id="tab-importer" class="tab-pane active">
+  <div class="card">
+    <div class="card-header">
+      <h2>IMPORT CHARACTER FROM FELLOWSHIPLOGS</h2>
+      <p>Paste a report link or code (e.g. <code>https://www.fellowshiplogs.com/reports/yLzJ8M391AwYfVTK?fight=32&type=summary&source=3</code>) to auto-grab fights and heroes.</p>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label for="input-report-url">FellowshipLogs URL or Report Code</label>
+        <div class="input-action-group">
+          <input type="text" id="input-report-url" class="form-input" placeholder="https://www.fellowshiplogs.com/reports/yLzJ8M391AwYfVTK?fight=32&type=summary&source=3" value="https://www.fellowshiplogs.com/reports/yLzJ8M391AwYfVTK?fight=32&type=summary&source=3">
+          <button id="btn-fetch-report" class="btn btn-primary">FETCH FIGHTS</button>
+        </div>
+      </div>
+
+      <div id="import-selection-area" class="selection-grid hidden">
+        <div class="form-group">
+          <label for="select-fight">Select Fight / Encounter</label>
+          <select id="select-fight" class="form-select"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="select-player">Select Hero / Player</label>
+          <select id="select-player" class="form-select"></select>
+        </div>
+
+        <div class="form-group full-width">
+          <button id="btn-load-character" class="btn btn-primary btn-lg">
+            IMPORT CHARACTER LOADOUT
+          </button>
+        </div>
+      </div>
+
+      <div id="character-summary-badge" class="character-summary-card hidden">
+        <div class="char-header-row">
+          <h3 id="summary-name">MIDPLS</h3>
+          <span id="summary-class" class="badge-role">RIME</span>
+        </div>
+        <div class="char-quick-stats" id="summary-stats">
+          <!-- Dynamically populated stats -->
+        </div>
+      </div>
+
+      <!-- Optional: Import Dungeon Route from Log -->
+      <div class="route-import-subcard">
+        <div class="subcard-header">
+          <h3>OPTIONAL: IMPORT DUNGEON ROUTE FROM LOG</h3>
+          <p>Generate a custom route from a specific fight's enemy data in any Fellowship log.</p>
+        </div>
+        <div class="input-action-group">
+          <input type="text" id="input-route-url" class="form-input" placeholder="Paste log URL or use current report...">
+          <button id="btn-use-current-log-route" class="btn btn-secondary">USE CURRENT LOG</button>
+          <button id="btn-import-log-route" class="btn btn-primary hidden">IMPORT ROUTE</button>
+        </div>
+        <div id="route-import-status" class="route-status-text hidden"></div>
+      </div>
+    </div>
+  </div>
+</section>
+

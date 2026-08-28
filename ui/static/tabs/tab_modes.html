@@ -1,0 +1,183 @@
+<!-- TAB 3: MODES -->
+<section id="tab-modes" class="tab-pane">
+  <!-- Card 1: Route & Simulation Mode -->
+  <div class="card">
+    <div class="card-header">
+      <h2>SIMULATION MODES</h2>
+      <p>Select the encounter type and scaling parameters.</p>
+    </div>
+    <div class="card-body">
+      <div class="mode-cards-grid">
+        <!-- Card 1: Dungeon Route -->
+        <div class="mode-card active" data-mode="dungeon" id="card-mode-dungeon">
+          <h3>DUNGEON ROUTE</h3>
+          <div class="form-group" style="margin-top: 10px; margin-bottom: 8px;">
+            <select id="select-dungeon-route" class="form-select">
+              <option value="eternal_62" selected>Dungeon Route - Eternal 62</option>
+              <option value="custom_imported">Imported Dungeon Route</option>
+            </select>
+          </div>
+          <p class="mode-desc" id="dungeon-route-desc">Exported from a Wyrmheart 62 route.</p>
+          <div class="mode-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="check-scale-damage" checked>
+              <span>Scale Mob HP to Player's % Damage Done</span>
+            </label>
+            <div class="scale-input-wrapper">
+              <label for="input-scale-pct">Player Damage %:</label>
+              <div class="input-with-unit">
+                <input type="number" id="input-scale-pct" class="form-input form-input-sm" value="37.99" step="0.01" min="1" max="100">
+                <span class="input-unit">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Single Target Test -->
+        <div class="mode-card" data-mode="single_target" id="card-mode-st">
+          <h3>SINGLE TARGET TEST</h3>
+          <p class="mode-desc">Standard Patchwerk-style boss encounter with custom duration.</p>
+          <div class="mode-options">
+            <label for="input-st-duration">Duration (Seconds):</label>
+            <input type="number" id="input-st-duration" class="form-input" value="360" min="30" max="1800">
+          </div>
+        </div>
+
+        <!-- Card 3: AoE Target Test -->
+        <div class="mode-card" data-mode="aoe" id="card-mode-aoe">
+          <h3>AOE TARGET TEST</h3>
+          <p class="mode-desc">Multi-target sustained cleave test.</p>
+          <div class="mode-options">
+            <label for="input-aoe-targets">Target Count:</label>
+            <input type="number" id="input-aoe-targets" class="form-input" value="10" min="2" max="50">
+            <label for="input-aoe-duration" style="margin-top: 8px;">Duration (Seconds):</label>
+            <input type="number" id="input-aoe-duration" class="form-input" value="360" min="30" max="1800">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Compare Builds (Separate Square Card) -->
+  <div class="card compare-section-card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h2>COMPARE BUILDS</h2>
+        <p>Simulate multiple saved builds side-by-side using the encounter mode selected above.</p>
+      </div>
+      <div class="compare-toggle-wrap">
+        <label class="toggle-switch">
+          <input type="checkbox" id="check-enable-compare">
+          <span class="toggle-slider"></span>
+        </label>
+        <label for="check-enable-compare" class="toggle-label-text">Enable Comparison Mode</label>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="compare-builds-box" class="compare-builds-box">
+        <div class="compare-actions-bar">
+          <span class="compare-hint-text">Select builds to simulate in comparison mode:</span>
+          <div class="btn-group-sm">
+            <button type="button" id="btn-compare-select-all" class="btn btn-secondary btn-sm">SELECT ALL</button>
+            <button type="button" id="btn-compare-clear-all" class="btn btn-secondary btn-sm">CLEAR ALL</button>
+          </div>
+        </div>
+
+        <div id="compare-builds-checklist" class="compare-checklist-grid">
+          <!-- Dynamically populated with saved builds -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Automated Upgrade Finder -->
+  <div class="card upgrade-section-card" style="margin-top: 20px;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h2>UPGRADE FINDER</h2>
+        <p>Auto-evaluate next talent point choices, blessing combinations, or trait upgrades against your Current Editor build.</p>
+      </div>
+      <div class="compare-toggle-wrap">
+        <label class="toggle-switch">
+          <input type="checkbox" id="check-enable-upgrade">
+          <span class="toggle-slider"></span>
+        </label>
+        <label for="check-enable-upgrade" class="toggle-label-text">Enable Upgrade Finder</label>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="upgrade-options-box" class="compare-builds-box disabled-box">
+        <div class="mode-cards-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+          <div class="upgrade-card active" data-upgrade="stats" id="card-upgrade-stats">
+            <h3>STATS FINDER</h3>
+            <p class="mode-desc">Auto-evaluates all possible gear stat distributions against your current total gear budget.</p>
+          </div>
+          <!-- Option 2: Blessings -->
+          <div class="upgrade-card" data-upgrade="blessings" id="card-upgrade-blessings">
+            <h3>BLESSINGS FINDER</h3>
+            <p class="mode-desc">Auto-evaluates all 14 blessings against your Current Editor build.</p>
+            <div class="mode-options" style="margin-top: 10px;">
+              <label for="select-upgrade-blessing-tier">Evaluation Mode:</label>
+              <select id="select-upgrade-blessing-tier" class="form-select form-select-sm">
+                <option value="plus_one" selected>+1 to Current Build (Next Step • 14 variations)</option>
+                <option value="plus_four">+4 Max to Current Build (Keep others • 14 variations)</option>
+                <option value="4_only">4/4 Max Rank (Clears other blessings • 14 variations)</option>
+                <option value="all_tiers">All Ranks: 1/4 - 4/4 (Clears other blessings • 56 variations)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Option 3: Traits -->
+          <div class="upgrade-card" data-upgrade="traits" id="card-upgrade-traits">
+            <h3>TRAITS FINDER</h3>
+            <p class="mode-desc">Auto-evaluates trait upgrades across all 27 traits against your Current Editor build.</p>
+            <div class="mode-options" style="margin-top: 10px;">
+              <label for="select-upgrade-trait-tier">Evaluation Mode:</label>
+              <select id="select-upgrade-trait-tier" class="form-select form-select-sm">
+                <option value="plus_one" selected>+1 to Current Build (Next Step • 27 variations)</option>
+                <option value="plus_four">+4 Max to Current Build (Keep others • 27 variations)</option>
+                <option value="4_only">4/4 Max Rank (Clears other traits • 27 variations)</option>
+                <option value="all_ranks">All Ranks: 1/4 - 4/4 (Clears other traits • 108 variations)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Option 4: Sets -->
+          <div class="upgrade-card" data-upgrade="sets" id="card-upgrade-sets">
+            <h3>SETS FINDER</h3>
+            <p class="mode-desc">Auto-evaluates gear set bonuses across all 12 sets against your Current Editor build.</p>
+            <div class="mode-options" style="margin-top: 10px;">
+              <label for="select-upgrade-set-tier">Evaluation Mode:</label>
+              <select id="select-upgrade-set-tier" class="form-select form-select-sm">
+                <option value="add_one" selected>+1 Set to Current Build (12 variations)</option>
+                <option value="single_set">Single Set Only (Clears other sets • 12 variations)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Option 5: Gems -->
+          <div class="upgrade-card" data-upgrade="gems" id="card-upgrade-gems">
+            <h3>GEMS FINDER</h3>
+            <p class="mode-desc">Auto-evaluates gem power upgrades across all 10 engine breakpoints against your Current Editor build.</p>
+            <div class="mode-options" style="margin-top: 10px;">
+              <label for="select-upgrade-gem-tier">Evaluation Mode:</label>
+              <select id="select-upgrade-gem-tier" class="form-select form-select-sm">
+                <option value="next_tier" selected>Next Breakpoint (+1 Tier to Current • 6 variations)</option>
+                <option value="capstone_1500">1500 Max Capstone (+1500 Keep Others • 6 variations)</option>
+                <option value="major_breakpoints">Major Breakpoints Solo (450 / 600 / 1500 • 18 variations)</option>
+                <option value="all_tiers">All 10 Breakpoints Solo (80 - 1500 • 60 variations)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Option 6: Talents -->
+          <div class="upgrade-card" data-upgrade="talents" id="card-upgrade-talents">
+            <h3>NEXT TALENT FINDER</h3>
+            <p class="mode-desc">Auto-evaluates every eligible unselected talent that fits your remaining points against your Current Editor build.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+

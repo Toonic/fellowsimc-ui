@@ -1,0 +1,36 @@
+# ====================================================================
+# Wyrmheart +82 Dungeon Route (Guarded One-Shot Chain Waves)
+# Extracted from Fellowship Logs Report: yLzJ8M391AwYfVTK (Fight 32)
+# ====================================================================
+
+fight_style=DungeonRoute
+max_time=757
+vary_combat_length=0.0
+enemy="Wyrmheart"
+ignore_invulnerable_targets=1
+
+# --------------------------------------------------------------------
+# Pull 1: Start Area & Spellbound Golem (Base Pack + Guarded One-Shot Waves)
+# --------------------------------------------------------------------
+raid_events+=/pull,pull=1,delay=000,enemies="PRIO_Spellbound_Golem":1895600|"PRIO_Eldrin_Sentinel_1":758240|"PRIO_Eldrin_Sentinel_2":758240|"Blade_of_Cithrel_1":514520|"Blade_of_Cithrel_2":514520|"Tundra_Stalker_1":487440|"Coldheart_Assassin":460360|"Frozen_Remnant_1":270800|"Frozen_Remnant_2":270800|"Eldrin_Recruit_1":189560:1:6|"Ice_Shardling_1":108320:1:6
+
+raid_events+=/adds,pull=1,first=35s,count=5,health=189560,duration=265s,cooldown=9999s
+raid_events+=/adds,pull=1,first=70s,count=5,health=189560,duration=230s,cooldown=9999s
+raid_events+=/adds,pull=1,first=110s,count=5,health=189560,duration=190s,cooldown=9999s
+raid_events+=/adds,pull=1,first=150s,count=5,health=189560,duration=150s,cooldown=9999s
+raid_events+=/adds,pull=1,first=195s,count=5,health=189560,duration=105s,cooldown=9999s
+raid_events+=/adds,pull=1,first=240s,count=5,health=189560,duration=60s,cooldown=9999s
+
+# --------------------------------------------------------------------
+# Pull 2: Deep Caves & Ghorn the Avalanche (Base Pack + Guarded One-Shot Waves)
+# --------------------------------------------------------------------
+raid_events+=/pull,pull=2,delay=003,enemies="BOSS_Ghorn_the_Avalanche":3520400|"PRIO_Eldrin_Sentinel_1":758240|"PRIO_Eldrin_Sentinel_2":758240|"Blade_of_Cithrel_1":514520|"Blade_of_Cithrel_2":514520|"Blade_of_Cithrel_3":514520|"Eldrin_Recruit_1":189560:1:8
+
+raid_events+=/adds,pull=2,first=40s,count=5,health=189560,duration=135s,cooldown=9999s
+raid_events+=/adds,pull=2,first=85s,count=5,health=189560,duration=90s,cooldown=9999s
+raid_events+=/adds,pull=2,first=130s,count=5,health=189560,duration=45s,cooldown=9999s
+
+# --------------------------------------------------------------------
+# Pull 3: Final Encounter - Apostate Veras
+# --------------------------------------------------------------------
+raid_events+=/pull,pull=3,delay=003,enemies="BOSS_Apostate_Veras":6770000

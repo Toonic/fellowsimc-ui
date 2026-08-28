@@ -1,0 +1,50 @@
+# Compiled Binaries & Archives
+*.exe
+*.dll
+*.so
+*.dylib
+simc
+simc.exe
+simc-*.zip
+simc-*.tar.gz
+release-package/
+
+# Build & Intermediate Directories
+bin/
+build/
+vs/
+.vs/
+out/
+Debug/
+Release/
+x64/
+x86/
+int/
+
+# Python Cache & Environments
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+.env/
+venv/
+.venv/
+
+# Local User Configurations & Saved Builds
+ui/config.json
+/builds/**
+results.html
+latest_sim.html
+latest_sim.txt
+custom_sim.simc
+simc_log.txt
+simc_report.*
+*.log
+
+# Editor & OS Artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.bak
