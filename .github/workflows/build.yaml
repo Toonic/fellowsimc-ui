@@ -12,6 +12,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
+
+      - name: Ensure simc-engine submodule is populated
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "simc-engine/engine")) {
+            git submodule update --init --recursive
+          }
+          if (-not (Test-Path "simc-engine/engine")) {
+            git clone https://github.com/FellowSimc/fellowsimc.git simc-engine
+          }
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -63,6 +74,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
+
+      - name: Ensure simc-engine submodule is populated
+        run: |
+          if [ ! -d "simc-engine/engine" ]; then
+            git submodule update --init --recursive
+          fi
+          if [ ! -d "simc-engine/engine" ]; then
+            git clone https://github.com/FellowSimc/fellowsimc.git simc-engine
+          fi
 
       - name: Install Linux Dependencies
         run: |
