@@ -153,7 +153,7 @@ export class BuildsController {
           });
           this.state.saveBuildsToStorage();
           this.populateLoadDropdown();
-          this.renderCompareBuildsList();
+          if (this.compareController) this.compareController.renderCompareBuildsList();
           ProfileGenerator.updateEditor(this.state);
         }
       }

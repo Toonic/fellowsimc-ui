@@ -17,6 +17,7 @@ export class AppState {
     this.scalePct = 37.99;
     this.enableScale = true;
     this.customRouteText = "";
+    this.customRouteText100 = "";
     this.aplChoice = "base";
     this.legendary = "none";
     this.activeSets = new Set();
@@ -32,13 +33,13 @@ actions+=/chronoshift,if=(spirit>=70|spirit>=85|buff.ice_blitz.up)&(cooldown.col
 actions+=/frost_bolt`;
     this.selectedTalents = new Set();
     this.stats = {
-      primary: 259,
-      stamina: 425,
-      haste: 53,
-      expertise: 158,
-      crit: 185,
-      spirit: 146,
-      armor: 539
+      primary: 100,
+      stamina: 0,
+      haste: 0,
+      expertise: 0,
+      crit: 0,
+      spirit: 0,
+      armor: 0
     };
     this.gems = {
       sapphire: 0,
@@ -62,6 +63,7 @@ actions+=/frost_bolt`;
     this.upgradeBlessingTier = "plus_one";
     this.upgradeTraitTier = "plus_one";
     this.upgradeSetTier = "add_one";
+    this.upgradeGemTier = "next_tier";
     this.upgradeStatTier = "stat_grid";
     this.activeBuildName = "";
     this.currentLoadedBuildId = "";

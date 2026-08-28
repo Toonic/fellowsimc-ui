@@ -1,54 +1,91 @@
+// FellowSimc Main Application Orchestrator
 import { state } from "./state.js";
 import { ALL_HERO_TALENTS } from "./data/heroes/index.js";
 import { ProfileGenerator } from "./modules/profile.js";
-import { HeroPickerController } from "./modules/hero_picker.js";
-import { StatsController } from "./modules/stats.js";
-import { GearController } from "./modules/gear.js";
-import { LogImporter } from "./modules/importer.js";
-import { SimRunner } from "./modules/simulator.js";
-import { BuildsController } from "./modules/builds.js";
-import { CompareController } from "./modules/compare.js";
-import { UpgradeFinderController } from "./modules/upgrade_finder.js";
+
+// Tab Controllers
+import { ImporterTab } from "./tabs/tab_importer.js";
+import { HeroTab } from "./tabs/tab_hero.js";
+import { ModesTab } from "./tabs/tab_modes.js";
+import { AdvancedTab } from "./tabs/tab_advanced.js";
+import { ResultsTab } from "./tabs/tab_results.js";
+
+const TAB_DEFINITIONS = [
+  { id: "tab-importer", file: "tabs/tab_importer.html" },
+  { id: "tab-hero",     file: "tabs/tab_hero.html" },
+  { id: "tab-modes",    file: "tabs/tab_modes.html" },
+  { id: "tab-advanced", file: "tabs/tab_advanced.html" },
+  { id: "tab-results",  file: "tabs/tab_results.html" }
+];
 
 class Application {
   constructor() {
     this.state = state;
     this.state.talentsData = ALL_HERO_TALENTS;
-    this.heroPicker = new HeroPickerController(this.state);
-    this.statsController = new StatsController(this.state);
-    this.gearController = new GearController(this.state);
-    this.compare = new CompareController(this.state, () => ProfileGenerator.updateEditor(this.state));
-    this.upgradeFinder = new UpgradeFinderController(this.state, () => ProfileGenerator.updateEditor(this.state));
-    this.importer = new LogImporter(this.state, this.heroPicker, this.gearController, this.statsController);
-    this.builds = new BuildsController(this.state, this.heroPicker, this.gearController, this.statsController, this.compare);
-    this.simulator = new SimRunner(this.state, this.builds, this.heroPicker, this.gearController, this.statsController);
+
+    // Instantiate tab controllers
+    this.modesTab = new ModesTab(this.state, () => ProfileGenerator.updateEditor(this.state));
+    this.heroTab = new HeroTab(this.state, this.modesTab.compare);
+    this.importerTab = new ImporterTab(
+      this.state,
+      this.heroTab.heroPicker,
+      this.heroTab.gearController,
+      this.heroTab.statsController
+    );
+    this.advancedTab = new AdvancedTab(this.state, () => ProfileGenerator.updateEditor(this.state));
+    this.resultsTab = new ResultsTab(
+      this.state,
+      this.heroTab.builds,
+      this.heroTab.heroPicker,
+      this.heroTab.gearController,
+      this.heroTab.statsController
+    );
+  }
+
+  /** Load each tab's standalone HTML template into the main content container. */
+  async loadTabTemplates() {
+    const mainContainer = document.getElementById("main-content");
+    if (!mainContainer) return;
+
+    // Skip if tabs are already injected
+    if (document.getElementById("tab-importer")) return;
+
+    const htmlFragments = await Promise.all(
+      TAB_DEFINITIONS.map(async (tab) => {
+        try {
+          const res = await fetch(tab.file);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.text();
+        } catch (e) {
+          console.error(`Failed to load ${tab.file}:`, e);
+          return `<section id="${tab.id}" class="tab-pane"><div class="card"><p>Failed to load tab template: ${tab.file}</p></div></section>`;
+        }
+      })
+    );
+
+    mainContainer.innerHTML = htmlFragments.join("\n");
   }
 
   async init() {
-    this.#initTabs();
-    this.heroPicker.init();
-    this.heroPicker.onHeroChange = () => {
-      this.compare.renderCompareBuildsList();
-    };
-    this.statsController.init();
-    this.gearController.init();
-    this.compare.init();
-    this.upgradeFinder.init();
-    this.builds.init();
-    this.importer.init();
-    this.simulator.init();
-    this.#initModeCards();
-    this.#initRouteSelector();
-    this.#initScaleInputs();
-    this.#initAplControls();
-    this.#initIterationControls();
+    // 1. Load HTML templates for all 5 tabs
+    await this.loadTabTemplates();
 
-    this.heroPicker.selectHero("rime", false);
-    this.simulator.checkApiConfig();
+    // 2. Set up tab navigation
+    this.#initTabs();
+
+    // 3. Initialize tab controllers
+    this.heroTab.init();
+    this.modesTab.init();
+    this.importerTab.init();
+    this.advancedTab.init();
+    this.resultsTab.init();
+
+    // 4. Initial state setup
+    this.heroTab.selectHero("rime", false);
     ProfileGenerator.updateEditor(this.state);
   }
 
-  // ─── Private Methods ──────────────────────────────────────────────────────
+  // ─── Private Navigation Setup ─────────────────────────────────────────────
 
   /** Set up tab switching between all nav-tab / tab-pane pairs. */
   #initTabs() {
@@ -60,137 +97,16 @@ class Application {
         tab.classList.add("active");
         const targetPane = document.getElementById(tab.dataset.tab);
         if (targetPane) targetPane.classList.add("active");
+
+        if (tab.dataset.tab === "tab-modes" && this.modesTab?.compare) {
+          this.modesTab.compare.renderCompareBuildsList();
+        } else if (tab.dataset.tab === "tab-hero" && this.heroTab?.builds) {
+          this.heroTab.builds.populateLoadDropdown();
+        }
+
         ProfileGenerator.updateEditor(this.state);
       });
     });
-  }
-
-  /** Wire the simulation mode cards (Dungeon / ST / AoE) to state. */
-  #initModeCards() {
-    document.querySelectorAll(".mode-card").forEach(card => {
-      card.addEventListener("click", (e) => {
-        if (["INPUT", "BUTTON", "SELECT"].includes(e.target.tagName)) return;
-        document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
-        card.classList.add("active");
-        this.state.activeMode = card.dataset.mode || "dungeon";
-        ProfileGenerator.updateEditor(this.state);
-      });
-    });
-  }
-
-  /** Wire the dungeon route selector and associated description text. */
-  #initRouteSelector() {
-    const selDungeonRoute = document.getElementById("select-dungeon-route");
-    if (!selDungeonRoute) return;
-
-    selDungeonRoute.addEventListener("change", (e) => {
-      this.state.selectedRouteType = e.target.value;
-      const desc = document.getElementById("dungeon-route-desc");
-      if (desc) {
-        desc.textContent = e.target.value === "eternal_62"
-          ? "Exported from a Wyrmheart 62 route."
-          : this.state.customRouteText
-            ? "Custom route imported from log."
-            : "Custom route (import a log below).";
-      }
-      ProfileGenerator.updateEditor(this.state);
-    });
-  }
-
-  /** Wire the damage scale % checkbox and input, plus ST/AoE duration inputs. */
-  #initScaleInputs() {
-    const inputScale = document.getElementById("input-scale-pct");
-    if (inputScale) {
-      inputScale.addEventListener("input", (e) => {
-        this.state.scalePct = parseFloat(e.target.value) || 100.0;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    const checkScale = document.getElementById("check-scale-damage");
-    if (checkScale) {
-      checkScale.addEventListener("change", (e) => {
-        this.state.enableScale = e.target.checked;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    const refresh = () => ProfileGenerator.updateEditor(this.state);
-    document.getElementById("input-st-duration")?.addEventListener("input", refresh);
-    document.getElementById("input-aoe-targets")?.addEventListener("input", refresh);
-    document.getElementById("input-aoe-duration")?.addEventListener("input", refresh);
-  }
-
-  /** Wire APL preset selector and the custom APL toggle + editor. */
-  #initAplControls() {
-    const selectApl = document.getElementById("select-apl-preset");
-    if (selectApl) {
-      selectApl.addEventListener("change", (e) => {
-        this.state.aplChoice = e.target.value;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    const customAplCheck = document.getElementById("check-custom-apl");
-    const customAplCont  = document.getElementById("custom-apl-container");
-    if (customAplCheck && customAplCont) {
-      customAplCheck.checked = this.state.useCustomApl;
-      customAplCont.classList.toggle("hidden", !this.state.useCustomApl);
-      if (selectApl) selectApl.disabled = this.state.useCustomApl;
-
-      customAplCheck.addEventListener("change", (e) => {
-        this.state.useCustomApl = e.target.checked;
-        customAplCont.classList.toggle("hidden", !e.target.checked);
-        if (selectApl) selectApl.disabled = this.state.useCustomApl;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    const customAplEd = document.getElementById("custom-apl-editor");
-    if (customAplEd) {
-      customAplEd.value = this.state.customAplText;
-      customAplEd.addEventListener("input", (e) => {
-        this.state.customAplText = e.target.value;
-        if (this.state.useCustomApl) ProfileGenerator.updateEditor(this.state);
-      });
-    }
-  }
-
-  /** Wire the iteration count chips + manual input, and the thread count input. */
-  #initIterationControls() {
-    const inputIter = document.getElementById("input-iterations");
-    if (inputIter) {
-      inputIter.addEventListener("input", (e) => {
-        this.state.iterations = parseInt(e.target.value) || 1000;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
-
-    document.querySelectorAll(".btn-chip").forEach(chip => {
-      chip.addEventListener("click", () => {
-        document.querySelectorAll(".btn-chip").forEach(c => {
-          c.classList.remove("btn-primary");
-          c.classList.add("btn-secondary");
-        });
-        chip.classList.remove("btn-secondary");
-        chip.classList.add("btn-primary");
-
-        const iters = parseInt(chip.dataset.iterations) || 1000;
-        this.state.iterations = iters;
-        if (inputIter) inputIter.value = iters;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    });
-
-    const defaultThreads = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 4;
-    const inputThr = document.getElementById("input-threads");
-    if (inputThr) {
-      inputThr.value = this.state.threads || defaultThreads;
-      inputThr.addEventListener("input", (e) => {
-        this.state.threads = parseInt(e.target.value) || defaultThreads;
-        ProfileGenerator.updateEditor(this.state);
-      });
-    }
   }
 }
 

@@ -1,0 +1,80 @@
+<!-- TAB 4: ADVANCED & APL -->
+<section id="tab-advanced" class="tab-pane">
+  <!-- APL Configuration Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>ACTION PRIORITY LIST (APL) CONFIGURATION</h2>
+      <p>Select a hero APL preset or toggle Custom APL to write your own rotation.</p>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <div class="form-label-row">
+          <label for="select-apl-preset">APL PRESET SELECTION</label>
+          <label class="checkbox-label toggle-custom-apl">
+            <input type="checkbox" id="check-custom-apl">
+            <span>USE CUSTOM APL</span>
+          </label>
+        </div>
+        <select id="select-apl-preset" class="form-select">
+          <option value="base" selected>Dynamic Build Router (rime_base_apl.simc)</option>
+          <option value="talons">Icy Talons APL (rime_talons_apl.simc)</option>
+          <option value="frostweaver">Frostweaver's Wrath APL (rime_frostweaver_apl.simc)</option>
+          <option value="soulfrost">Soulfrost Torrent APL (rime_soulfrost_apl.simc)</option>
+          <option value="generic">Generic APL (rime_generic_apl.simc)</option>
+        </select>
+      </div>
+
+      <div id="custom-apl-container" class="hidden" style="margin-top: 16px;">
+        <label for="custom-apl-editor">Custom APL Definition (Actions & Priorities):</label>
+        <textarea id="custom-apl-editor" class="code-editor" rows="10" spellcheck="false" placeholder="# Write or paste custom APL actions here...
+actions.precombat=snapshot_stats
+actions.precombat+=/frost_bolt
+actions+=/ice_blitz
+actions+=/winters_blessing
+actions+=/flight_of_the_navir
+actions+=/cold_snap,if=cooldown.chronoshift.up&worb<5
+actions+=/chronoshift,if=(spirit>=70|spirit>=85|buff.ice_blitz.up)&(cooldown.cold_snap.charges=0|worb>=5)
+actions+=/frost_bolt"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Iterations -->
+  <div class="card">
+    <div class="card-header">
+      <h2>ITERATIONS</h2>
+      <p>Configure iteration count and thread allocation for the simulator.</p>
+    </div>
+    <div class="card-body">
+      <div class="sim-settings-grid">
+        <div class="form-group">
+          <label for="input-iterations">Simulation Iterations</label>
+          <input type="number" id="input-iterations" class="form-input" value="1000" min="100" max="100000" step="500">
+          <div class="chip-group">
+            <button type="button" class="btn btn-primary btn-sm btn-chip" data-iterations="1000">1,000</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="5000">5,000</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="10000">10,000</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-chip" data-iterations="25000">25,000</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="input-threads">CPU Threads</label>
+          <input type="number" id="input-threads" class="form-input" min="1" max="128">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generated Profile Editor -->
+  <div class="card">
+    <div class="card-header">
+      <h2>GENERATED SIMC PROFILE</h2>
+      <p>Directly inspect and modify the raw Simulationcraft profile before running.</p>
+    </div>
+    <div class="card-body">
+      <textarea id="raw-profile-editor" class="code-editor" rows="18" spellcheck="false"></textarea>
+    </div>
+  </div>
+</section>
+

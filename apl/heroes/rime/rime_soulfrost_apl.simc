@@ -55,4 +55,4 @@ actions.soulfrost+=/glacial_blast,if=active_enemies=1&(worb>=2|buff.undulating_s
 # --------------------------------------------------------------------
 actions.soulfrost+=/cold_snap,if=worb<5&!buff.glacial_assault.at_max_stacks&(!blessing.the_vehement|!buff.the_vehement.at_max_stacks|buff.frostwyrms_spite.up)
 actions.soulfrost+=/natures_fury
-actions.soulfrost+=/frost_bolt
+actions.soulfrost+=/frost_bolt,if=!blessing.the_vehement|!buff.the_vehement.at_max_stacks

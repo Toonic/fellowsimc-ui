@@ -102,7 +102,9 @@ export class CompareController {
         } else {
           this.state.selectedCompareBuildIds.delete(item.id);
         }
+        const prevScroll = container.scrollTop;
         this.renderCompareBuildsList();
+        container.scrollTop = prevScroll;
         this.onUpdate();
       });
 

@@ -1,3 +1,0 @@
-HeaderFilterRegex: '\.hpp'
-FormatStyle: file
-Checks: '-*,modernize-*,-modernize-use-trailing-return-type,-modernize-use-nodiscard,-modernize-use-auto,-modernize-use-default-member-init'

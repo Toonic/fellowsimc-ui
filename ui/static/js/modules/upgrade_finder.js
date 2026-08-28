@@ -8,6 +8,17 @@ import { calculateSheetStats } from "./stat_utils.js";
 
 const MAX_TALENT_POINTS = 16;
 
+const GEM_TIERS = [80, 150, 220, 300, 450, 600, 800, 1000, 1250, 1500];
+
+const ALL_GEMS = [
+  { id: "sapphire", name: "Sapphire", desc: "Spirit on Cast & Spirit Cost Reduction" },
+  { id: "amethyst", name: "Amethyst", desc: "Execute Damage & High HP Crit Amp" },
+  { id: "emerald",  name: "Emerald",  desc: "Cooldown Reduction & First Strike Sprint" },
+  { id: "ruby",     name: "Ruby",     desc: "Low-HP Damage Amp & Minotaur Enrage" },
+  { id: "diamond",  name: "Diamond",  desc: "Harmonious Shielding & Damage Reduction" },
+  { id: "topaz",    name: "Topaz",    desc: "Cast Speed Acceleration & Virtuoso Surge" }
+];
+
 export class UpgradeFinderController {
   constructor(state, onUpdate) {
     this.state = state;
@@ -81,6 +92,14 @@ export class UpgradeFinderController {
         this.onUpdate();
       });
     }
+
+    const selectGemTier = document.getElementById("select-upgrade-gem-tier");
+    if (selectGemTier) {
+      selectGemTier.addEventListener("change", (e) => {
+        this.state.upgradeGemTier = e.target.value || "next_tier";
+        this.onUpdate();
+      });
+    }
   }
 
   /**
@@ -98,6 +117,8 @@ export class UpgradeFinderController {
       lines.push(...this.generateTraitsUpgrade(state));
     } else if (upgradeType === "sets") {
       lines.push(...this.generateSetsUpgrade(state));
+    } else if (upgradeType === "gems") {
+      lines.push(...this.generateGemsUpgrade(state));
     } else if (upgradeType === "talents") {
       lines.push(...this.generateTalentsUpgrade(state));
     }
@@ -167,8 +188,7 @@ export class UpgradeFinderController {
 
     ALL_BLESSINGS.forEach(b => {
       if (tierMode === "plus_one") {
-        // "+1 to Current Build": Current_Editor's baseline still carries the real
-        // loadout, so build on top of it - keep every existing blessing, bump this one.
+        // Keep all current blessings, add 1 of this one (capped at 4)
         const counts = { ...curBlessings };
         counts[b.id] = Math.min(4, (counts[b.id] || 0) + 1);
         const affixList = [];
@@ -178,10 +198,19 @@ export class UpgradeFinderController {
         lines.push(``);
         lines.push(`copy="${b.name} (+1 -> ${counts[b.id]}/4)","Current_Editor"`);
         lines.push(`trinket2=relic2,affixes=${affixList.join("/")}`);
+      } else if (tierMode === "plus_four") {
+        // Keep all current blessings, set this one to 4 (keep others as-is)
+        const counts = { ...curBlessings };
+        counts[b.id] = 4;
+        const affixList = [];
+        Object.entries(counts).forEach(([id, num]) => {
+          for (let i = 0; i < num; i++) affixList.push(id);
+        });
+        lines.push(``);
+        lines.push(`copy="${b.name} (+4 Max Keep Others)","Current_Editor"`);
+        lines.push(`trinket2=relic2,affixes=${affixList.join("/")}`);
       } else if (tierMode === "all_tiers") {
-        // Not "+1 to Current Build": Current_Editor's baseline is generated bare
-        // (trinket2=relic2, no affixes) for this tier, so we only need to state
-        // the affixes we actually want to test - nothing else to strip.
+        // Clear all other blessings — test only this one at each rank
         for (let r = 1; r <= 4; r++) {
           const affixList = [];
           for (let i = 0; i < r; i++) affixList.push(b.id);
@@ -190,6 +219,7 @@ export class UpgradeFinderController {
           lines.push(`trinket2=relic2,affixes=${affixList.join("/")}`);
         }
       } else {
+        // 4_only: clear all other blessings — test only this one at 4
         lines.push(``);
         lines.push(`copy="${b.name} (4/4 Max)","Current_Editor"`);
         lines.push(`trinket2=relic2,affixes=${b.id}/${b.id}/${b.id}/${b.id}`);
@@ -209,21 +239,28 @@ export class UpgradeFinderController {
 
     ALL_WEAPON_TRAITS.forEach(tr => {
       if (traitMode === "plus_one") {
-        // "+1 to Current Build": baseline still carries the real trait ranks.
+        // Keep all current traits, add +1 to this one (capped at 4)
         const curRank = state.traitCounts?.[tr.id] || 0;
-        const newRank = curRank + 1;
+        const newRank = Math.min(4, curRank + 1);
         lines.push(``);
         lines.push(`copy="${tr.name} (+1 -> R${newRank})","Current_Editor"`);
         lines.push(`weapon_trait.${tr.id}=${newRank}`);
+      } else if (traitMode === "plus_four") {
+        // Keep all current traits, set this one to rank 4
+        const curRank = state.traitCounts?.[tr.id] || 0;
+        lines.push(``);
+        lines.push(`copy="${tr.name} (+4 Max Keep Others)","Current_Editor"`);
+        lines.push(`weapon_trait.${tr.id}=4`);
       } else {
-        // Not "+1 to Current Build": baseline is generated with no weapon_trait
-        // lines at all for this tier, so we only need to state the trait we're
-        // testing - nothing else to strip.
+        // all_ranks or 4_only: strip ALL other traits, test only this one
         const ranks = traitMode === "all_ranks" ? [1, 2, 3, 4] : [4];
         ranks.forEach(r => {
           const label = traitMode === "all_ranks" ? `${tr.name} (R${r})` : `${tr.name} (4/4 Max)`;
           lines.push(``);
           lines.push(`copy="${label}","Current_Editor"`);
+          ALL_WEAPON_TRAITS.forEach(other => {
+            if (other.id !== tr.id) lines.push(`weapon_trait.${other.id}=0`);
+          });
           lines.push(`weapon_trait.${tr.id}=${r}`);
         });
       }
@@ -242,19 +279,76 @@ export class UpgradeFinderController {
 
     ALL_GEAR_SETS.forEach(gs => {
       if (setMode === "add_one") {
-        // "+1 to Current Build": baseline still carries the real active sets.
+        // Keep current sets, add this one on top
         lines.push(``);
         lines.push(`copy="Set: ${gs.name} (+1)","Current_Editor"`);
         lines.push(`sets.${gs.id}=1`);
       } else {
-        // Not "+1 to Current Build": baseline is generated with no sets lines
-        // at all for this tier, so we only need to state the set we're testing -
-        // nothing else to strip.
+        // single_set: strip ALL sets, test only this one
         lines.push(``);
         lines.push(`copy="Solo Set: ${gs.name}","Current_Editor"`);
+        ALL_GEAR_SETS.forEach(other => {
+          if (other.id !== gs.id) lines.push(`sets.${other.id}=0`);
+        });
         lines.push(`sets.${gs.id}=1`);
       }
     });
+    return lines;
+  }
+
+  static generateGemsUpgrade(state) {
+    const lines = [];
+    lines.push(``);
+    lines.push(`# ====================================================================`);
+    lines.push(`# Upgrade Finder: Gem Powers Evaluation`);
+    lines.push(`# ====================================================================`);
+
+    const gemMode = state.upgradeGemTier || "next_tier";
+    const curGems = state.gems || {};
+
+    ALL_GEMS.forEach(gem => {
+      const curPower = curGems[gem.id] || 0;
+
+      if (gemMode === "next_tier") {
+        // Find next engine threshold above curPower
+        const nextTier = GEM_TIERS.find(t => t > curPower) || 1500;
+        const tierIdx = GEM_TIERS.indexOf(nextTier) + 1;
+        lines.push(``);
+        lines.push(`copy="${gem.name} (+1 Tier -> T${tierIdx}: ${nextTier} Power)","Current_Editor"`);
+        lines.push(`gems.${gem.id}_power=${nextTier}`);
+      } else if (gemMode === "capstone_1500") {
+        // Keep others, max this one to 1500 Tier 10
+        lines.push(``);
+        lines.push(`copy="${gem.name} (T10: 1500 Capstone Keep Others)","Current_Editor"`);
+        lines.push(`gems.${gem.id}_power=1500`);
+      } else if (gemMode === "major_breakpoints") {
+        // Clear others, test major spikes: Tier 5 (450), Tier 6 (600), Tier 10 (1500)
+        const majorTiers = [
+          { tier: 5, power: 450, label: "T5: 450 Major Mechanic" },
+          { tier: 6, power: 600, label: "T6: 600 Major Surge" },
+          { tier: 10, power: 1500, label: "T10: 1500 Capstone" }
+        ];
+        majorTiers.forEach(tObj => {
+          lines.push(``);
+          lines.push(`copy="${gem.name} (${tObj.label})","Current_Editor"`);
+          ALL_GEMS.forEach(other => {
+            if (other.id !== gem.id) lines.push(`gems.${other.id}_power=0`);
+          });
+          lines.push(`gems.${gem.id}_power=${tObj.power}`);
+        });
+      } else {
+        // all_tiers: Clear others, test all 10 engine tiers (80 - 1500)
+        GEM_TIERS.forEach((pwr, idx) => {
+          lines.push(``);
+          lines.push(`copy="${gem.name} (T${idx + 1}: ${pwr} Power)","Current_Editor"`);
+          ALL_GEMS.forEach(other => {
+            if (other.id !== gem.id) lines.push(`gems.${other.id}_power=0`);
+          });
+          lines.push(`gems.${gem.id}_power=${pwr}`);
+        });
+      }
+    });
+
     return lines;
   }
 

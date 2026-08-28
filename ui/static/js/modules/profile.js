@@ -8,6 +8,61 @@ import { UpgradeFinderController } from "./upgrade_finder.js";
 
 export { applyFellowDR, calculateSheetStats };
 
+export function scaleSimcRoute(routeText, scalePct) {
+  const factor = (scalePct || 100.0) / 100.0;
+  if (factor === 1.0) return routeText;
+  
+  return routeText.split("\n").map(line => {
+    if (line.trim().startsWith("#") || !line.trim()) return line;
+    
+    // Scale enemies in raid_events+=/pull,...,enemies=...
+    if (line.includes("enemies=")) {
+      line = line.replace(/(enemies=)([^\r\n,]+(?:\(.*?\))?[^\r\n,]*)/, (match, prefix, content) => {
+        const parts = content.split("|").map(p => {
+          const m = p.trim().match(/^(.*?):(\d+)((?::\d+:\d+)?)$/);
+          if (m) {
+            const name = m[1];
+            const hp = parseInt(m[2], 10);
+            const rest = m[3] || "";
+            const newHp = Math.round(hp * factor);
+            return `${name}:${newHp}${rest}`;
+          }
+          return p;
+        });
+        return `${prefix}${parts.join("|")}`;
+      });
+    }
+    
+    // Scale health in raid_events+=/adds,...,health=...,...
+    if (line.includes("health=")) {
+      line = line.replace(/\bhealth=(\d+)\b/g, (match, hpStr) => {
+        const hp = parseInt(hpStr, 10);
+        return `health=${Math.round(hp * factor)}`;
+      });
+    }
+    
+    return line;
+  }).join("\n");
+}
+
+function getDungeonRouteLines(state) {
+  const lines = [];
+  if (state.selectedRouteType === "custom_imported" && (state.customRouteText100 || state.customRouteText)) {
+    const base100 = state.customRouteText100 || state.customRouteText;
+    const finalRoute = state.enableScale ? scaleSimcRoute(base100, state.scalePct) : base100;
+    lines.push(`# Encounter: Custom Imported Dungeon Route (Scaled: ${state.enableScale ? state.scalePct + '%' : '100%'})`);
+    lines.push(finalRoute);
+  } else {
+    lines.push(`# Encounter: Dungeon Route - Eternal 62 (Scaled: ${state.enableScale ? state.scalePct + '%' : '100%'})`);
+    if (state.enableScale) {
+      lines.push(`apl/routes/wyrmheart_62_solo.simc`);
+    } else {
+      lines.push(`apl/routes/wyrmheart_62_100.simc`);
+    }
+  }
+  return lines;
+}
+
 export class ProfileGenerator {
   /**
    * @param {object} build
@@ -53,7 +108,7 @@ export class ProfileGenerator {
     const rawPrimary = stats.primary || 0;
     const gearPrimary = Math.max(0, rawPrimary - 100);
     const rawStam = stats.stamina || 0;
-    const gearStam = Math.max(0, rawStam - 100);
+    const gearStam = rawStam;
     const rawArmor = stats.armor || 0;
 
     lines.push(``);
@@ -88,85 +143,90 @@ export class ProfileGenerator {
 
     // Sets & Legendary
     lines.push(``);
-    lines.push(`# Active Sets & Legendary`);
-    if (stripSets) {
-      lines.push(`# (Sets stripped - Sets Finder is active on a non-"+1" tier;`);
-      lines.push(`#  each candidate below supplies its own set.)`);
-    } else {
-      const activeSets = build.activeSets instanceof Set ? Array.from(build.activeSets) : (build.activeSets || []);
-      activeSets.forEach(setId => {
-        lines.push(`sets.${setId}=1`);
-      });
-    }
-    if (build.legendary && build.legendary !== "none") {
-      lines.push(`legendary.${build.legendary}=1`);
-    }
-    lines.push(``);
-
-    // Weapon & Weapon Traits
-    lines.push(`# Equipped Weapon & Weapon Traits`);
-    lines.push(`weapon=${build.weapon || "chronoshift"}`);
-    if (stripTraits) {
-      lines.push(`# (Weapon traits stripped - Traits Finder is active on a non-"+1" tier;`);
-      lines.push(`#  each candidate below supplies its own trait.)`);
-    } else if (build.traitCounts) {
-      for (const [tname, trank] of Object.entries(build.traitCounts)) {
-        lines.push(`weapon_trait.${tname}=${trank}`);
+    lines.push(`# Sets & Legendary`);
+    if (!stripSets) {
+      const activeSets = build.activeSets instanceof Set ? build.activeSets : new Set(build.activeSets || []);
+      if (activeSets.size > 0) {
+        for (const setName of activeSets) {
+          lines.push(`sets.${setName}=1`);
+        }
       }
     }
-    lines.push(``);
+    const leg = build.legendary || "none";
+    if (leg && leg !== "none") {
+      lines.push(`legendary.${leg}=1`);
+    }
 
-    // Blessings — all consolidated onto trinket2=relic2
-    const activeBlessingList = [];
-    if (!stripBlessings && build.blessingCounts) {
-      for (const [bid, count] of Object.entries(build.blessingCounts)) {
-        const cappedCount = Math.min(4, Math.max(0, count));
-        for (let i = 0; i < cappedCount; i++) {
-          activeBlessingList.push(bid);
+    // Equipped Weapon
+    const weapon = build.weapon || "chronoshift";
+    if (weapon) {
+      lines.push(``);
+      lines.push(`# Equipped Weapon`);
+      lines.push(`weapon=${weapon}`);
+    }
+
+    // Weapon Traits
+    if (!stripTraits) {
+      const traitCounts = build.traitCounts || {};
+      const traitEntries = Object.entries(traitCounts).filter(([, rank]) => rank > 0);
+      if (traitEntries.length > 0) {
+        lines.push(``);
+        lines.push(`# Weapon Traits`);
+        for (const [traitName, rank] of traitEntries) {
+          lines.push(`weapon_trait.${traitName}=${rank}`);
         }
       }
     }
 
-    // Gear Items (named slots, no affixes — affixes go on relic2)
-    if (build.gearAffixes && build.gearAffixes.length > 0) {
-      lines.push(`# Gear Items`);
-      build.gearAffixes.forEach(g => lines.push(g));
+    // Gear Items
+    const gearAffixes = build.gearAffixes || [];
+    const gearItemNames = build.gearItemNames || {};
+    const gearEntries = Object.entries(gearItemNames);
+    if (gearEntries.length > 0) {
       lines.push(``);
-    } else if (build.gearItemNames && Object.keys(build.gearItemNames).length > 0) {
       lines.push(`# Gear Items`);
-      Object.entries(build.gearItemNames).forEach(([slot, name]) => {
-        lines.push(`${slot}=${name}`);
-      });
-      lines.push(``);
+      for (const [slot, itemName] of gearEntries) {
+        lines.push(`${slot}=${itemName}`);
+      }
     }
 
-    if (stripBlessings) {
-      lines.push(`# Blessings (Stripped - Blessings Finder is active on a non-"+1" tier;`);
-      lines.push(`#  each candidate below supplies its own full affix list.)`);
-      lines.push(`trinket2=relic2`);
-      lines.push(``);
-    } else if (activeBlessingList.length > 0) {
-      lines.push(`# Blessings (All affixes on Relic 2)`);
-      lines.push(`trinket2=relic2,affixes=${activeBlessingList.join("/")}`);
-      lines.push(``);
+    // Blessings on Relic 2
+    if (!stripBlessings) {
+      const blessingCounts = build.blessingCounts || {};
+      const allBlessingAffixes = [];
+      for (const [bname, count] of Object.entries(blessingCounts)) {
+        const capped = Math.min(4, Math.max(0, count));
+        for (let i = 0; i < capped; i++) {
+          allBlessingAffixes.push(bname);
+        }
+      }
+      if (allBlessingAffixes.length > 0) {
+        lines.push(``);
+        lines.push(`# Blessings (All affixes on Relic 2)`);
+        lines.push(`trinket2=relic2,affixes=${allBlessingAffixes.join("/")}`);
+      } else if (gearAffixes.length > 0) {
+        lines.push(``);
+        lines.push(`# Blessings (All affixes on Relic 2)`);
+        lines.push(`trinket2=relic2,affixes=${gearAffixes.join("/")}`);
+      }
     }
 
-    // Build Talents in Simulationcraft format: talents=tal1:1/tal2:1/...
-    const selectedTalents = build.selectedTalents instanceof Set ? Array.from(build.selectedTalents) : (build.selectedTalents || []);
-    if (selectedTalents.length > 0) {
+    // Talents
+    const talents = build.selectedTalents instanceof Set ? build.selectedTalents : new Set(build.selectedTalents || []);
+    if (talents.size > 0) {
+      lines.push(``);
       lines.push(`# Talents`);
-      const activeTalents = selectedTalents.map(id => `${id}:1`);
-      lines.push(`talents=${activeTalents.join("/")}`);
-      lines.push(``);
+      const talentList = Array.from(talents).map(t => `${t}:1`).join("/");
+      lines.push(`talents=${talentList}`);
     }
 
     return lines.join("\n");
   }
 
   static generate(state) {
-    const chkEnableCompare = document.getElementById("check-enable-compare");
-    const chkEnableUpgrade = document.getElementById("check-enable-upgrade");
+    const chkEnableUpgrade = document.getElementById("check-enable-upgrade-finder");
     const isUpgrade = chkEnableUpgrade ? chkEnableUpgrade.checked : Boolean(state.enableUpgrade);
+    const chkEnableCompare = document.getElementById("check-enable-compare");
     const hasSelectedBuilds = Boolean(state.selectedCompareBuildIds && state.selectedCompareBuildIds.size > 0);
     const isCompare = !isUpgrade && (chkEnableCompare ? chkEnableCompare.checked : (Boolean(state.enableCompare) || hasSelectedBuilds));
     const encounterMode = state.activeMode || "dungeon";
@@ -191,13 +251,7 @@ export class ProfileGenerator {
       lines.push(``);
 
       if (encounterMode === "dungeon") {
-        if (state.selectedRouteType === "custom_imported" && state.customRouteText) {
-          lines.push(`# Encounter: Custom Imported Dungeon Route`);
-          lines.push(state.customRouteText);
-        } else {
-          lines.push(`# Encounter: Dungeon Route - Eternal 62 (Exported from a Wyrmheart 62 route)`);
-          lines.push(`apl/routes/wyrmheart_62_solo.simc`);
-        }
+        lines.push(...getDungeonRouteLines(state));
       } else if (encounterMode === "single_target") {
         const dur = document.getElementById("input-st-duration")?.value || 360;
         lines.push(`# Encounter: Single Target (${dur}s)`);
@@ -215,13 +269,12 @@ export class ProfileGenerator {
       }
       lines.push(``);
 
-      // Only strip the baseline's own blessings/traits/sets when the matching
-      // Finder is active AND its tier is NOT "+1 to Current Build" - that mode
-      // still needs the real current loadout since candidates build on top of it.
       const upgradeType = state.upgradeType || "stats";
-      const stripBlessings = upgradeType === "blessings" && (state.upgradeBlessingTier || "plus_one") !== "plus_one";
-      const stripTraits = upgradeType === "traits" && (state.upgradeTraitTier || "plus_one") !== "plus_one";
-      const stripSets = upgradeType === "sets" && (state.upgradeSetTier || "add_one") !== "add_one";
+      const blessingTier = state.upgradeBlessingTier || "plus_one";
+      const traitTier    = state.upgradeTraitTier    || "plus_one";
+      const stripBlessings = upgradeType === "blessings" && blessingTier !== "plus_one" && blessingTier !== "plus_four";
+      const stripTraits    = upgradeType === "traits"    && traitTier    !== "plus_one" && traitTier    !== "plus_four";
+      const stripSets      = upgradeType === "sets"      && (state.upgradeSetTier || "add_one") !== "add_one";
 
       // Baseline Actor (Current Editor)
       lines.push(ProfileGenerator.generateActorBlock(state, "Current_Editor", { stripBlessings, stripTraits, stripSets }));
@@ -237,13 +290,7 @@ export class ProfileGenerator {
       lines.push(``);
 
       if (encounterMode === "dungeon") {
-        if (state.selectedRouteType === "custom_imported" && state.customRouteText) {
-          lines.push(`# Encounter: Custom Imported Dungeon Route`);
-          lines.push(state.customRouteText);
-        } else {
-          lines.push(`# Encounter: Dungeon Route - Eternal 62 (Exported from a Wyrmheart 62 route)`);
-          lines.push(`apl/routes/wyrmheart_62_solo.simc`);
-        }
+        lines.push(...getDungeonRouteLines(state));
       } else if (encounterMode === "single_target") {
         const dur = document.getElementById("input-st-duration")?.value || 360;
         lines.push(`# Encounter: Single Target (${dur}s)`);
@@ -268,13 +315,7 @@ export class ProfileGenerator {
       lines.push(``);
 
       if (encounterMode === "dungeon") {
-        if (state.selectedRouteType === "custom_imported" && state.customRouteText) {
-          lines.push(`# Encounter: Custom Imported Dungeon Route`);
-          lines.push(state.customRouteText);
-        } else {
-          lines.push(`# Encounter: Dungeon Route - Eternal 62 (Exported from a Wyrmheart 62 route)`);
-          lines.push(`apl/routes/wyrmheart_62_solo.simc`);
-        }
+        lines.push(...getDungeonRouteLines(state));
       } else if (encounterMode === "single_target") {
         const dur = document.getElementById("input-st-duration")?.value || 360;
         lines.push(`# Encounter: Single Target (${dur}s)`);
@@ -290,12 +331,6 @@ export class ProfileGenerator {
         lines.push(`fight_style=Patchwerk`);
         lines.push(`desired_targets=${targets}`);
       }
-    }
-
-    if (state.enableScale && state.scalePct && state.scalePct !== 100) {
-      lines.push(``);
-      lines.push(`# Damage Output Scaling`);
-      lines.push(`scale_player_damage=${(state.scalePct / 100).toFixed(4)}`);
     }
 
     return lines.join("\n");

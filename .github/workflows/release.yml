@@ -10,39 +10,165 @@ on:
         description: 'Release Tag / Version (e.g. v0.0.1)'
         required: true
         default: 'v0.0.1'
+      release_name:
+        description: 'Release Name (optional)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    runs-on: windows-2025-vs2026
+  build-windows:
+    name: Build Windows (x64)
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository & submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build
-        run: msbuild simc_vs2026.sln /p:Configuration=Release /p:Platform=x64
+      - name: Build Engine (Windows)
+        run: |
+          cd simc-engine
+          if (Test-Path simc_vs2026.sln) {
+            msbuild simc_vs2026.sln /p:Configuration=Release /p:Platform=x64
+          } else {
+            msbuild simc_vs2022.sln /p:Configuration=Release /p:Platform=x64
+          }
+          cd ..
 
-      - name: Package build
+      - name: Package Windows Release
         shell: pwsh
         run: |
-          mkdir release-package
-          copy bin\x64\Release\simc.exe release-package\
-          copy start_ui.bat release-package\
+          New-Item -ItemType Directory -Force -Path release-package
+          
+          # Find and copy simc.exe from submodule build output
+          if (Test-Path simc-engine\bin\x64\Release\simc.exe) {
+            Copy-Item simc-engine\bin\x64\Release\simc.exe release-package\simc.exe
+          } elseif (Test-Path simc-engine\build\Release\simc.exe) {
+            Copy-Item simc-engine\build\Release\simc.exe release-package\simc.exe
+          } elseif (Test-Path simc-engine\simc.exe) {
+            Copy-Item simc-engine\simc.exe release-package\simc.exe
+          } elseif (Test-Path simc.exe) {
+            Copy-Item simc.exe release-package\simc.exe
+          }
+          
+          if (Test-Path start_ui.bat) { Copy-Item start_ui.bat release-package\ }
+          
+          # Copy APL directory (excluding development folder)
           New-Item -ItemType Directory -Force -Path release-package\apl
-          Get-ChildItem -Path apl -Exclude "development" | Copy-Item -Destination release-package\apl -Recurse -Force
+          if (Test-Path apl) {
+            Get-ChildItem -Path apl -Exclude "development" | Copy-Item -Destination release-package\apl -Recurse -Force
+          }
+          
+          # Copy Profiles if present
           if (Test-Path profiles) { Copy-Item -Recurse profiles release-package\profiles }
+          
+          # Copy UI directory (excluding pycache and local configs)
           Copy-Item -Recurse ui release-package\ui
           Remove-Item -Recurse -Force release-package\ui\__pycache__ -ErrorAction SilentlyContinue
           Remove-Item -Force release-package\ui\*config.json -ErrorAction SilentlyContinue
+          
+          # Create Windows ZIP archive
           Compress-Archive -Path release-package\* -DestinationPath simc-windows.zip
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simc-windows
+          path: simc-windows.zip
+
+  build-linux:
+    name: Build Linux (x64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository & submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev build-essential cmake zip
+
+      - name: Build Engine (Linux)
+        run: |
+          cmake -B simc-engine/build -S simc-engine -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF
+          cmake --build simc-engine/build --config Release -j$(nproc)
+
+      - name: Package Linux Release
+        run: |
+          mkdir -p release-package
+          
+          # Copy simc binary from submodule build output
+          if [ -f simc-engine/build/simc ]; then
+            cp simc-engine/build/simc release-package/simc
+          elif [ -f simc-engine/build/bin/simc ]; then
+            cp simc-engine/build/bin/simc release-package/simc
+          elif [ -f simc-engine/engine/simc ]; then
+            cp simc-engine/engine/simc release-package/simc
+          elif [ -f simc ]; then
+            cp simc release-package/simc
+          fi
+          
+          # Copy launch scripts
+          if [ -f start_ui.sh ]; then
+            cp start_ui.sh release-package/start_ui.sh
+          fi
+          
+          # Set executable permissions
+          chmod +x release-package/simc release-package/start_ui.sh 2>/dev/null || true
+          
+          # Copy APL directory (excluding development)
+          mkdir -p release-package/apl
+          if [ -d apl ]; then
+            rsync -av --exclude="development" apl/ release-package/apl/
+          fi
+          
+          # Copy Profiles if present
+          if [ -d profiles ]; then
+            cp -r profiles release-package/
+          fi
+          
+          # Copy UI directory (clean up pycache & config)
+          cp -r ui release-package/
+          find release-package/ui -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+          rm -f release-package/ui/*config.json 2>/dev/null || true
+          
+          # Create Linux ZIP archive
+          (cd release-package && zip -r ../simc-linux.zip .)
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simc-linux
+          path: simc-linux.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: simc-windows
+
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: simc-linux
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name || github.ref_name }}
           name: ${{ inputs.release_name != '' && inputs.release_name || format('FellowSimc UI - {0}', inputs.tag_name || github.ref_name) }}
-          files: simc-windows.zip
+          files: |
+            simc-windows.zip
+            simc-linux.zip

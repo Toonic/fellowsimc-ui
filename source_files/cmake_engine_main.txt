@@ -1,3 +1,0 @@
-set(source_files
-sc_main.cpp
-)

@@ -94,13 +94,21 @@ class SimulationManager:
             with open(sim_file, "w", encoding="utf-8") as f:
                 f.write(profile_text)
 
-            simc_exe = os.path.join(run_dir, "simc.exe")
-            if not os.path.exists(simc_exe):
-                simc_exe = os.path.join(root_dir, "simc.exe")
+            candidate_paths = [
+                os.path.join(run_dir, "simc.exe"),
+                os.path.join(root_dir, "simc.exe"),
+                os.path.join(run_dir, "simc"),
+                os.path.join(root_dir, "simc"),
+                os.path.join(root_dir, "simc-engine", "bin", "x64", "Release", "simc.exe"),
+                os.path.join(root_dir, "simc-engine", "simc.exe"),
+                os.path.join(root_dir, "simc-engine", "build", "simc"),
+                os.path.join(root_dir, "simc-engine", "engine", "simc"),
+            ]
+            simc_exe = next((p for p in candidate_paths if os.path.exists(p)), None)
 
-            if not os.path.exists(simc_exe):
+            if not simc_exe:
                 self.running = False
-                return False, f"simc.exe not found at {simc_exe}."
+                return False, f"simc executable not found. Looked in {root_dir} and {os.path.join(root_dir, 'simc-engine')}."
 
             cmd = [simc_exe, "custom_sim.simc", "html=latest_sim.html", "output=latest_sim.txt"]
             try:
@@ -228,7 +236,7 @@ def parse_simc_file(filepath):
         "name": filename.replace("_", " "),
         "hero": "rime",
         "playerName": filename,
-        "stats": {"primary": 259, "stamina": 400, "haste": 0, "expertise": 0, "crit": 0, "spirit": 0, "armor": 500},
+        "stats": {"primary": 100, "stamina": 0, "haste": 0, "expertise": 0, "crit": 0, "spirit": 0, "armor": 0},
         "selectedTalents": [],
         "weapon": "chronoshift",
         "legendary": "none",
@@ -366,10 +374,13 @@ class FellowSimcHandler(http.server.BaseHTTPRequestHandler):
         
         if url.path == "/api/config":
             cfg = load_config()
+            client_id = (cfg.get("client_id") or "").strip()
+            client_secret = (cfg.get("client_secret") or "").strip()
             self.send_json(200, {
-                "client_id": cfg.get("client_id", ""),
-                "client_secret": cfg.get("client_secret", ""),
-                "has_secret": bool(cfg.get("client_secret"))
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "has_secret": bool(client_secret),
+                "is_configured": bool(client_id and client_secret)
             })
             return
 
@@ -600,20 +611,46 @@ hr {
 
             elif url.path == "/api/import-report":
                 cfg = load_config()
+                client_id = (cfg.get("client_id") or "").strip()
+                client_secret = (cfg.get("client_secret") or "").strip()
+                if not client_id or not client_secret:
+                    self.send_json(400, {
+                        "error": "FellowshipLogs API Key is not configured. Please configure your Client ID and Client Secret in API Settings to fetch combat logs.",
+                        "error_type": "api_key_missing"
+                    })
+                    return
                 code, fight_id, source_id = importer.extract_report_code(data.get("url_or_code", ""))
                 if not code:
                     self.send_json(400, {"error": "Invalid report code or URL."})
                     return
-                report = importer.fetch_report_summary(cfg["client_id"], cfg["client_secret"], code)
-                self.send_json(200, {
-                    "report_code": code,
-                    "default_fight_id": fight_id,
-                    "default_source_id": source_id,
-                    "report": report
-                })
+                try:
+                    report = importer.fetch_report_summary(client_id, client_secret, code)
+                    self.send_json(200, {
+                        "report_code": code,
+                        "default_fight_id": fight_id,
+                        "default_source_id": source_id,
+                        "report": report
+                    })
+                except Exception as e:
+                    err_str = str(e)
+                    if "401" in err_str or "403" in err_str or "Unauthorized" in err_str:
+                        self.send_json(401, {
+                            "error": "FellowshipLogs API authentication failed. Please verify your Client ID and Client Secret in API Settings.",
+                            "error_type": "api_key_invalid"
+                        })
+                    else:
+                        self.send_json(500, {"error": f"Failed to fetch report from FellowshipLogs: {e}"})
 
             elif url.path == "/api/import-character":
                 cfg = load_config()
+                client_id = (cfg.get("client_id") or "").strip()
+                client_secret = (cfg.get("client_secret") or "").strip()
+                if not client_id or not client_secret:
+                    self.send_json(400, {
+                        "error": "FellowshipLogs API Key is not configured. Please configure your Client ID and Client Secret in API Settings to import character loadouts.",
+                        "error_type": "api_key_missing"
+                    })
+                    return
                 raw_code = data.get("url_or_code") or data.get("report_code") or ""
                 code, default_fight, default_source = importer.extract_report_code(raw_code)
                 if not code:
@@ -626,23 +663,44 @@ hr {
                     self.send_json(400, {"error": "Missing report code or URL."})
                     return
 
-                char_data = importer.fetch_character_data(
-                    cfg["client_id"], cfg["client_secret"], code, fight_id, player_id, player_name
-                )
-                generated = importer.generate_simc_profile(char_data, data.get("options", {}))
-                self.send_json(200, {
-                    "character_data": char_data,
-                    "generated_profile": generated,
-                    "generated_profile_components": generated
-                })
+                try:
+                    char_data = importer.fetch_character_data(
+                        client_id, client_secret, code, fight_id, player_id, player_name
+                    )
+                    generated = importer.generate_simc_profile(char_data, data.get("options", {}))
+                    self.send_json(200, {
+                        "character_data": char_data,
+                        "generated_profile": generated,
+                        "generated_profile_components": generated
+                    })
+                except Exception as e:
+                    err_str = str(e)
+                    if "401" in err_str or "403" in err_str or "Unauthorized" in err_str:
+                        self.send_json(401, {
+                            "error": "FellowshipLogs API authentication failed. Please verify your Client ID and Client Secret in API Settings.",
+                            "error_type": "api_key_invalid"
+                        })
+                    else:
+                        self.send_json(500, {"error": f"Failed to import character: {e}"})
 
             elif url.path == "/api/import-route":
                 cfg = load_config()
+                client_id = (cfg.get("client_id") or "").strip()
+                client_secret = (cfg.get("client_secret") or "").strip()
+                if not client_id or not client_secret:
+                    self.send_json(400, {
+                        "error": "FellowshipLogs API Key is not configured. Please configure your Client ID and Client Secret in API Settings to import dungeon routes.",
+                        "error_type": "api_key_missing"
+                    })
+                    return
                 code, default_fight, _ = importer.extract_report_code(data.get("url_or_code", ""))
                 fight_id = data.get("fight_id") or default_fight or 1
                 scale_pct = float(data.get("scale_pct", 100.0))
-                route_data = importer.fetch_dungeon_route(cfg["client_id"], cfg["client_secret"], code, fight_id, scale_pct)
-                self.send_json(200, route_data)
+                try:
+                    route_data = importer.fetch_dungeon_route(client_id, client_secret, code, fight_id, scale_pct)
+                    self.send_json(200, route_data)
+                except Exception as e:
+                    self.send_json(500, {"error": f"Failed to import route: {e}"})
 
             elif url.path == "/api/generate-profile":
                 char_data = data.get("character_data", {})

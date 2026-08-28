@@ -50,8 +50,14 @@ body { background-color: var(--bg-page); color: var(--text-main); font-family: v
 .brand-gold { color: var(--text-gold); }
 .brand-subtitle { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-top: 2px; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
-.status-badge { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-md); font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; background: rgba(23, 201, 100, 0.1); border: 1px solid rgba(23, 201, 100, 0.25); color: var(--accent-success); cursor: pointer; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-success); }
+.status-badge { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-md); font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; transition: all 0.15s ease; border: 1px solid transparent; }
+.status-badge.connected { background: rgba(23, 201, 100, 0.1); border-color: rgba(23, 201, 100, 0.25); color: var(--accent-success); }
+.status-badge.connected .status-dot { background: var(--accent-success); }
+.status-badge.unconfigured, .status-badge.error, .status-badge.disconnected { background: rgba(243, 18, 96, 0.12); border-color: rgba(243, 18, 96, 0.35); color: var(--accent-danger); }
+.status-badge.unconfigured .status-dot, .status-badge.error .status-dot, .status-badge.disconnected .status-dot { background: var(--accent-danger); }
+.status-badge.warning { background: rgba(245, 165, 36, 0.12); border-color: rgba(245, 165, 36, 0.35); color: var(--accent-warning); }
+.status-badge.warning .status-dot { background: var(--accent-warning); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; }
 
 /* === 4. BUTTONS & CONTROLS ================================================= */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 12px; font-weight: 600; letter-spacing: 0.3px; cursor: pointer; transition: all 0.15s ease; border: 1px solid transparent; white-space: nowrap; }
@@ -226,11 +232,14 @@ body { background-color: var(--bg-page); color: var(--text-main); font-family: v
 .compare-builds-box.disabled-box { opacity: 0.35; pointer-events: none; filter: grayscale(0.5); }
 .compare-actions-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
 .compare-hint-text { font-size: 13px; color: var(--text-muted); }
-.compare-checklist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.compare-build-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s ease; user-select: none; }
+.compare-checklist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 6px; }
+.compare-checklist-grid::-webkit-scrollbar { width: 6px; }
+.compare-checklist-grid::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+.compare-checklist-grid::-webkit-scrollbar-thumb { background: rgba(176, 142, 88, 0.4); border-radius: 3px; }
+.compare-build-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s ease; user-select: none; min-width: 0; }
 .compare-build-row:hover { background: #1e1e24; border-color: rgba(255, 255, 255, 0.2); }
 .compare-build-row.selected { border-color: rgba(176, 142, 88, 0.7); background: rgba(176, 142, 88, 0.1); }
-.compare-row-content { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.compare-row-content { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden; }
 .compare-build-title { font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .empty-state-notice { padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px; background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-md); border: 1px dashed var(--border-color); }
 
@@ -288,6 +297,12 @@ body { background-color: var(--bg-page); color: var(--text-main); font-family: v
 .modal-body p { color: var(--text-muted); font-size: 12px; margin-bottom: 16px; }
 .modal-body a { color: var(--text-gold); text-decoration: underline; }
 .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; }
+.modal-notice-card { max-width: 440px; border-color: rgba(243, 18, 96, 0.4); }
+.notice-message-container { display: flex; gap: 14px; align-items: flex-start; }
+.notice-icon-badge { flex-shrink: 0; width: 40px; height: 40px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; background: rgba(243, 18, 96, 0.15); border: 1px solid rgba(243, 18, 96, 0.3); color: var(--accent-danger); }
+.notice-icon-badge.warning { background: rgba(245, 165, 36, 0.15); border-color: rgba(245, 165, 36, 0.3); color: var(--accent-warning); }
+.notice-icon-badge.info { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6; }
+.notice-icon-badge.success { background: rgba(23, 201, 100, 0.15); border-color: rgba(23, 201, 100, 0.3); color: var(--accent-success); }
 
 /* === 21. HERO BADGES & THEME ACCENTS ======================================= */
 .badge-role { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }

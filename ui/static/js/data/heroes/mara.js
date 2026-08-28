@@ -121,7 +121,7 @@ export const MARA = {
       "label": "V",
       "talents": [
         {
-          "id": "hemotoxin",
+          "id": "hemotoxin_old",
           "name": "Hemotoxin",
           "pointCost": 3,
           "icon": "T_PoisonBlister.webp"

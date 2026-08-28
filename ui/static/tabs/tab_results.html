@@ -1,0 +1,40 @@
+<!-- TAB 5: SIMULATE & RESULTS -->
+<section id="tab-results" class="tab-pane">
+  <div class="card results-hero-card">
+    <div class="dps-main-metric">
+      <span class="dps-label">SIMULATED MEAN OUTPUT</span>
+      <h2 id="result-dps-value">-- DPS</h2>
+      <span id="result-meta-info" class="dps-meta">1000 Iterations • 0.0s elapsed</span>
+    </div>
+    <div class="results-quick-actions">
+      <button type="button" id="btn-stop-sim" class="btn btn-danger hidden">STOP SIM</button>
+      <button id="btn-run-sim" class="btn btn-primary">RUN SIM</button>
+      <button id="btn-open-html-report" class="btn btn-secondary hidden">
+        OPEN FULL HTML REPORT
+      </button>
+    </div>
+  </div>
+
+  <!-- Compare Results Leaderboard Card (Raidbots Style) -->
+  <div id="compare-results-card" class="card compare-leaderboard-card hidden">
+    <div class="card-header">
+      <h2>BUILD COMPARISON RANKINGS</h2>
+      <p>Side-by-side DPS comparison leaderboard and percentage delta rankings.</p>
+    </div>
+    <div class="card-body">
+      <div id="compare-leaderboard-container" class="compare-leaderboard-list">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>SIMULATION LOG OUTPUT</h3>
+    </div>
+    <div class="card-body">
+      <pre id="sim-console-output" class="console-box">No simulation run yet. Click "RUN SIMULATION" above to begin.</pre>
+    </div>
+  </div>
+</section>
+

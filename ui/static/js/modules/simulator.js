@@ -99,24 +99,32 @@ export class SimRunner {
       if (cfgSec && data.client_secret) {
         cfgSec.value = data.client_secret;
       }
+      const isConfigured = Boolean((data.client_id || "").trim() && (data.client_secret || "").trim() && data.has_secret);
       const statusBadge = document.getElementById("connection-status");
       if (statusBadge) {
-        if (data.has_secret) {
+        if (isConfigured) {
           statusBadge.className = "status-badge connected";
-          statusBadge.querySelector(".status-text").textContent = "API Ready";
+          statusBadge.querySelector(".status-text").textContent = "API READY";
         } else {
-          statusBadge.className = "status-badge warning";
-          statusBadge.querySelector(".status-text").textContent = "Set API Keys";
+          statusBadge.className = "status-badge unconfigured";
+          statusBadge.querySelector(".status-text").textContent = "API NOT CONFIGURED";
         }
       }
+      return isConfigured;
     } catch (e) {
       console.error("Config check failed", e);
+      const statusBadge = document.getElementById("connection-status");
+      if (statusBadge) {
+        statusBadge.className = "status-badge unconfigured";
+        statusBadge.querySelector(".status-text").textContent = "API NOT CONFIGURED";
+      }
+      return false;
     }
   }
 
   async saveApiConfig() {
-    const cid = document.getElementById("cfg-client-id")?.value || "";
-    const sec = document.getElementById("cfg-client-secret")?.value || "";
+    const cid = (document.getElementById("cfg-client-id")?.value || "").trim();
+    const sec = (document.getElementById("cfg-client-secret")?.value || "").trim();
     try {
       const res = await fetch("/api/config", {
         method: "POST",
@@ -125,8 +133,11 @@ export class SimRunner {
       });
       if (res.ok) {
         const modal = document.getElementById("modal-settings");
-        if (modal) modal.classList.add("hidden");
-        this.checkApiConfig();
+        if (modal) {
+          modal.classList.add("hidden");
+          modal.style.display = "none";
+        }
+        await this.checkApiConfig();
       }
     } catch (e) {
       alert("Failed to save credentials: " + e);
@@ -281,17 +292,21 @@ export class SimRunner {
     }
 
     // 4. Blessings Finder
-    const bMatch = raw.match(/^(.+?)\s*(?:\(\+1\s*->\s*(\d+)\/4\)|\((\d+)\/4(?:\s+Max)?\))$/i);
+    // Labels: "Name (+1 -> N/4)"  |  "Name (N/4)"  |  "Name (4/4 Max)"  |  "Name (+4 Max Keep Others)"
+    const bMatch = raw.match(/^(.+?)\s*(?:\(\+1\s*->\s*(\d+)\/4\)|\((\d+)\/4(?:\s+Max)?\)|\(\+4 Max Keep Others\))$/i);
     if (bMatch) {
       const bName = bMatch[1].trim();
-      const count = parseInt(bMatch[2] || bMatch[3] || "4");
+      const isKeepOthers = raw.includes("Keep Others");
+      const isIsolated   = !isKeepOthers && (raw.includes("Max") || bMatch[3]);
+      const count = bMatch[2] ? parseInt(bMatch[2]) : (bMatch[3] ? parseInt(bMatch[3]) : 4);
       const foundBlessing = ALL_BLESSINGS.find(b => b.name.toLowerCase() === bName.toLowerCase() || b.id.toLowerCase() === bName.toLowerCase());
       if (foundBlessing) {
         if (!this.state.blessingCounts) this.state.blessingCounts = {};
-        if (raw.includes("Max") || bMatch[3]) {
-          // Isolated mode: clear others
+        if (isIsolated) {
+          // Isolated mode (4_only / all_tiers): replace all blessings with just this one
           this.state.blessingCounts = { [foundBlessing.id]: count };
         } else {
+          // +1 or +4 Max Keep Others: keep existing blessings, update this one
           this.state.blessingCounts[foundBlessing.id] = count;
         }
       }
@@ -300,19 +315,23 @@ export class SimRunner {
     }
 
     // 5. Traits Finder
-    const trMatch = raw.match(/^(.+?)\s*(?:\(\+1\s*->\s*R(\d+)\)|\(R(\d+)\)|\(4\/4(?:\s+Max)?\))$/i);
+    // Labels: "Name (+1 -> RN)"  |  "Name (RN)"  |  "Name (4/4 Max)"  |  "Name (+4 Max Keep Others)"
+    const trMatch = raw.match(/^(.+?)\s*(?:\(\+1\s*->\s*R(\d+)\)|\(R(\d+)\)|\(4\/4(?:\s+Max)?\)|\(\+4 Max Keep Others\))$/i);
     if (trMatch) {
       const trName = trMatch[1].trim();
+      const isKeepOthers = raw.includes("Keep Others");
+      const isIsolated   = !isKeepOthers && (raw.includes("Max") || trMatch[3] || raw.includes("4/4"));
       let rank = 4;
       if (trMatch[2]) rank = parseInt(trMatch[2]);
       else if (trMatch[3]) rank = parseInt(trMatch[3]);
       const foundTrait = ALL_WEAPON_TRAITS.find(t => t.name.toLowerCase() === trName.toLowerCase() || t.id.toLowerCase() === trName.toLowerCase());
       if (foundTrait) {
         if (!this.state.traitCounts) this.state.traitCounts = {};
-        if (raw.includes("Max") || trMatch[3] || raw.includes("4/4")) {
-          // Isolated mode: clear others
+        if (isIsolated) {
+          // Isolated mode (4_only / all_ranks): replace all traits with just this one
           this.state.traitCounts = { [foundTrait.id]: rank };
         } else {
+          // +1 or +4 Max Keep Others: keep existing traits, update this one
           this.state.traitCounts[foundTrait.id] = rank;
         }
       }

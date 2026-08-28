@@ -1,6 +1,7 @@
 // FellowshipLogs Importer Module
 import { HERO_DEFINITIONS } from "../data/heroes/index.js";
 import { ProfileGenerator } from "./profile.js";
+import { showThemedNotice } from "./modal_utils.js";
 
 export class LogImporter {
   constructor(state, heroController, gearController, statsController) {
@@ -74,7 +75,14 @@ export class LogImporter {
       });
       const data = await res.json();
       if (data.error) {
-        alert("Error: " + data.error);
+        showThemedNotice({
+          title: data.error_type === "api_key_missing" || data.error_type === "api_key_invalid"
+            ? "API NOT CONFIGURED"
+            : "REPORT IMPORT ERROR",
+          message: data.error,
+          type: "error",
+          isApiConfig: data.error_type === "api_key_missing" || data.error_type === "api_key_invalid"
+        });
         return;
       }
 
@@ -86,7 +94,7 @@ export class LogImporter {
       this.state.currentActors = actors;
 
       // Populate Fights Dropdown
-      let selectedFightId = data.default_fight_id || (fights[0] ? fights[0].id : 1);
+      let selectedFightId = data.default_fight_id != null ? data.default_fight_id : (fights[0] ? fights[0].id : 1);
       const selectFight = document.getElementById("select-fight");
       if (selectFight) {
         selectFight.innerHTML = "";
@@ -94,12 +102,15 @@ export class LogImporter {
           const opt = document.createElement("option");
           opt.value = f.id;
           opt.textContent = `Fight ${f.id}: ${f.name} (${f.kill ? "Kill" : "Wipe"})`;
-          if (data.default_fight_id && f.id === data.default_fight_id) {
+          if (data.default_fight_id != null && String(f.id) === String(data.default_fight_id)) {
             opt.selected = true;
             selectedFightId = f.id;
           }
           selectFight.appendChild(opt);
         });
+        if (selectedFightId != null) {
+          selectFight.value = String(selectedFightId);
+        }
         if (selectFight.value) {
           selectedFightId = selectFight.value;
         }
@@ -110,7 +121,12 @@ export class LogImporter {
       const importArea = document.getElementById("import-selection-area");
       if (importArea) importArea.classList.remove("hidden");
     } catch (e) {
-      alert("Network error: " + e);
+      showThemedNotice({
+        title: "NETWORK ERROR",
+        message: "Failed to connect to server: " + e.message,
+        type: "error",
+        isApiConfig: false
+      });
     } finally {
       btn.textContent = "FETCH FIGHTS";
       btn.disabled = false;
@@ -214,7 +230,14 @@ export class LogImporter {
       });
       const data = await res.json();
       if (data.error) {
-        alert("Error importing character: " + data.error);
+        showThemedNotice({
+          title: data.error_type === "api_key_missing" || data.error_type === "api_key_invalid"
+            ? "API NOT CONFIGURED"
+            : "IMPORT FAILED",
+          message: data.error,
+          type: "error",
+          isApiConfig: data.error_type === "api_key_missing" || data.error_type === "api_key_invalid"
+        });
         return;
       }
 
@@ -328,7 +351,12 @@ export class LogImporter {
 
       ProfileGenerator.updateEditor(this.state);
     } catch (e) {
-      alert("Import failed: " + e);
+      showThemedNotice({
+        title: "IMPORT ERROR",
+        message: "Failed to import character loadout: " + e.message,
+        type: "error",
+        isApiConfig: false
+      });
     } finally {
       if (btn) {
         btn.textContent = "IMPORT CHARACTER LOADOUT";
@@ -361,13 +389,22 @@ export class LogImporter {
       });
       const data = await res.json();
       if (data.error) {
-        alert("Route import error: " + data.error);
+        showThemedNotice({
+          title: data.error_type === "api_key_missing" || data.error_type === "api_key_invalid"
+            ? "API NOT CONFIGURED"
+            : "ROUTE IMPORT ERROR",
+          message: data.error,
+          type: "error",
+          isApiConfig: data.error_type === "api_key_missing" || data.error_type === "api_key_invalid"
+        });
         return;
       }
 
+      this.state.customRouteText100 = data.route_text_100 || data.route_text;
       this.state.customRouteText = data.route_text;
+      
       if (statusDiv) {
-        statusDiv.textContent = `Successfully imported route: ${data.fight_name} (${data.enemies_count} enemy types, scaled to ${data.scale_pct}%)`;
+        statusDiv.textContent = `Successfully imported 100% Health Route: ${data.fight_name} (${data.enemies_count} enemy types, Scaled to ${this.state.enableScale ? this.state.scalePct + '%' : '100%'} for Sim)`;
         statusDiv.classList.remove("hidden");
       }
 
@@ -377,7 +414,7 @@ export class LogImporter {
         this.state.selectedRouteType = "custom_imported";
       }
       const desc = document.getElementById("dungeon-route-desc");
-      if (desc) desc.textContent = `Custom route: ${data.fight_name} (${data.enemies_count} enemy types).`;
+      if (desc) desc.textContent = `Custom route: ${data.fight_name} (100% Base HP, scaled to ${this.state.enableScale ? this.state.scalePct + '%' : '100%'} in sim).`;
 
       document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
       const cardDungeon = document.getElementById("card-mode-dungeon");
@@ -385,9 +422,13 @@ export class LogImporter {
       this.state.activeMode = "dungeon";
 
       ProfileGenerator.updateEditor(this.state);
-      alert(`Dungeon route imported from ${data.fight_name}!`);
     } catch (e) {
-      alert("Route import failed: " + e);
+      showThemedNotice({
+        title: "ROUTE IMPORT ERROR",
+        message: "Failed to import dungeon route: " + e.message,
+        type: "error",
+        isApiConfig: false
+      });
     } finally {
       if (btn) {
         btn.textContent = "IMPORT ROUTE";
