@@ -23,23 +23,14 @@ jobs:
     name: Build Windows (x64)
     runs-on: windows-latest
     steps:
-      - name: Checkout repository & submodules
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
 
-      - name: Ensure simc-engine submodule is populated
       - name: Fetch simc-engine (Fast Shallow Clone)
         shell: pwsh
         run: |
           if (-not (Test-Path "simc-engine/engine")) {
-            git submodule update --init --recursive
             git clone --depth 1 https://github.com/FellowSimc/fellowsimc.git simc-engine
-          }
-          if (-not (Test-Path "simc-engine/engine")) {
-            git clone https://github.com/FellowSimc/fellowsimc.git simc-engine
           }
 
       - name: Setup MSBuild
@@ -100,22 +91,13 @@ jobs:
     name: Build Linux (x64)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository & submodules
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
 
-      - name: Ensure simc-engine submodule is populated
       - name: Fetch simc-engine (Fast Shallow Clone)
         run: |
           if [ ! -d "simc-engine/engine" ]; then
-            git submodule update --init --recursive
             git clone --depth 1 https://github.com/FellowSimc/fellowsimc.git simc-engine
-          fi
-          if [ ! -d "simc-engine/engine" ]; then
-            git clone https://github.com/FellowSimc/fellowsimc.git simc-engine
           fi
 
       - name: Install Linux Dependencies
