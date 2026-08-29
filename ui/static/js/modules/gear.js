@@ -152,7 +152,7 @@ export class GearController {
     let totalPoints = 0;
 
     ALL_BLESSINGS.forEach(blessing => {
-      const count = this.state.blessingCounts[blessing.id] || 0;
+      const count = this.state.blessingCounts[blessing.id] || (blessing.id === "the_subduer" ? this.state.blessingCounts["subduer"] : (blessing.id === "subduer" ? this.state.blessingCounts["the_subduer"] : 0)) || 0;
       totalPoints += count;
 
       const card = document.createElement("div");

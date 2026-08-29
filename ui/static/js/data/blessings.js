@@ -12,5 +12,5 @@ export const ALL_BLESSINGS = [
   { id: "the_mystic", name: "The Mystic" },
   { id: "the_usurper", name: "The Usurper" },
   { id: "the_vehement", name: "The Vehement" },
-  { id: "subduer", name: "Subduer" }
+  { id: "the_subduer", name: "The Subduer" }
 ];

@@ -63,6 +63,15 @@ WEAPON_MAP = {
     "Zeraleths Hunger": "zeraleths_hunger"
 }
 
+# Weapons that have innate built-in traits in Fellowship
+WEAPON_INNATE_TRAITS = {
+    "chronoshift": {
+        "emerald_judgement": 1,
+        "hunters_focus": 1,
+        "seized_opportunity": 1
+    }
+}
+
 SLOT_NAME_MAP = {
     0: "head",
     1: "neck",
@@ -129,8 +138,12 @@ SET_SIMC_MAP = {
     "sin warding": "sin_warding",
     "sinthara's veil": "sintharas_veil",
     "sintharas veil": "sintharas_veil",
+    "torment of bael'aurum": "torment_of_baelaurum",
     "torment of baelaurum": "torment_of_baelaurum",
+    "bael'aurum": "torment_of_baelaurum",
+    "baelaurum": "torment_of_baelaurum",
     "tuzari grace": "tuzari_grace",
+    "tuzari's grace": "tuzari_grace",
     "undulating spirit": "undulating_spirit"
 }
 
@@ -476,8 +489,10 @@ def generate_simc_profile(character_data, options=None):
         if item.get("set"):
             raw_set = item.get("set")
             sname = (raw_set.get("name", "") if isinstance(raw_set, dict) else str(raw_set)).lower()
+            clean_sname = re.sub(r'[^a-zA-Z0-9]', '', sname)
             for skey, sval in SET_SIMC_MAP.items():
-                if skey in sname:
+                clean_skey = re.sub(r'[^a-zA-Z0-9]', '', skey)
+                if clean_skey in clean_sname or skey in sname:
                     set_counts[sval] = set_counts.get(sval, 0) + 1
                     break
                     
@@ -486,6 +501,11 @@ def generate_simc_profile(character_data, options=None):
         for wkey in WEAPON_MAP:
             if wkey.lower() in raw_iname.lower():
                 weapon_name = WEAPON_MAP[wkey]
+
+    # Merge innate weapon traits if weapon provides them
+    if weapon_name and weapon_name in WEAPON_INNATE_TRAITS:
+        for in_tname, in_rank in WEAPON_INNATE_TRAITS[weapon_name].items():
+            trait_counts[in_tname] = min(4, trait_counts.get(in_tname, 0) + in_rank)
 
     # Primary Stat Mapping for All Classes
     hero_key = (hero_type or "rime").lower()
@@ -739,6 +759,8 @@ def generate_simc_profile(character_data, options=None):
     if gear_items_output:
         lines.append(f"# Gear Items")
         for g_line in gear_items_output:
+            if blessings_list and g_line.startswith("trinket2="):
+                continue
             lines.append(g_line)
         lines.append("")
 

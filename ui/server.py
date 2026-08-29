@@ -324,7 +324,7 @@ def parse_simc_file(filepath):
                 elif key == "talents":
                     tals = [t.split(":")[0] for t in val.split("/") if t]
                     build["selectedTalents"] = tals
-                elif key in ["head", "shoulder", "chest", "wrists", "hands", "legs", "feet", "finger1", "finger2", "neck", "back", "main_hand"]:
+                elif key in ["head", "shoulder", "chest", "wrists", "hands", "legs", "feet", "finger1", "finger2", "neck", "back", "main_hand", "off_hand", "trinket1", "trinket2"]:
                     build["gearAffixes"].append(f"{key}={val}")
                     if "," in val:
                         item_part, aff_part = val.split(",", 1)
@@ -332,11 +332,22 @@ def parse_simc_file(filepath):
                         if "affixes=" in aff_part:
                             affs_str = aff_part.replace("affixes=", "").strip()
                             for aff in affs_str.split("/"):
-                                aff = aff.strip()
+                                aff = aff.strip().lower()
+                                if aff == "subduer":
+                                    aff = "the_subduer"
                                 if aff:
                                     build["blessingCounts"][aff] = build["blessingCounts"].get(aff, 0) + 1
                     else:
                         build["gearItemNames"][key] = val.strip()
+                elif "affixes=" in line:
+                    m = re.search(r'affixes=([a-zA-Z0-9_/]+)', line)
+                    if m:
+                        for aff in m.group(1).split("/"):
+                            aff = aff.strip().lower()
+                            if aff == "subduer":
+                                aff = "the_subduer"
+                            if aff:
+                                build["blessingCounts"][aff] = build["blessingCounts"].get(aff, 0) + 1
     return build
 
 def load_all_local_builds():
