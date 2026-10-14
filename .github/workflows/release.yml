@@ -26,23 +26,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fetch simc-engine (Fast Shallow Clone)
-        shell: pwsh
-        run: |
-          if (-not (Test-Path "simc-engine/engine")) {
-            git clone --depth 1 https://github.com/FellowSimc/fellowsimc.git simc-engine
-          }
-
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
       - name: Build Engine (Windows)
+        shell: pwsh
         run: |
           cd simc-engine
           if (Test-Path simc_vs2026.sln) {
-            msbuild simc_vs2026.sln /p:Configuration=Release /p:Platform=x64
+            msbuild simc_vs2026.sln /p:Configuration=Release /p:Platform=x64 /m
           } else {
-            msbuild simc_vs2022.sln /p:Configuration=Release /p:Platform=x64
+            msbuild simc_vs2022.sln /p:Configuration=Release /p:Platform=x64 /m
           }
           cd ..
 
