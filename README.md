@@ -86,3 +86,8 @@ This is a personal project so there will be no support with using the software. 
 Heavy work in progress.
 
 WoW code has yet to be pruned.
+
+---
+
+## Developer & Parity Guide
+For developers maintaining or adding new heroes, breaking out modular spells/talents, and verifying 1:1 combat log simulation replays, see the [Hero Implementation & Parity Engineering Guide](HERO_PARITY_DEV_GUIDE.md).

@@ -256,6 +256,9 @@ body { background-color: var(--bg-page); color: var(--text-main); font-family: v
 .dps-main-metric h2 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; }
 .dps-meta { font-size: 12px; color: var(--text-muted); }
 .compare-leaderboard-card { margin-bottom: 24px; }
+.compare-card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.compare-header-actions { display: flex; align-items: center; gap: 8px; }
+.compare-header-actions .btn { display: inline-flex; align-items: center; gap: 6px; }
 .compare-leaderboard-list { display: flex; flex-direction: column; gap: 12px; }
 .compare-result-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); transition: all 0.2s ease; }
 .compare-result-row.winner { border-color: rgba(176, 142, 88, 0.8); background: rgba(176, 142, 88, 0.08); }

@@ -32,6 +32,21 @@ export class SimRunner {
       });
     }
 
+    const btnExportTop = document.getElementById("btn-export-comparison-top");
+    if (btnExportTop) {
+      btnExportTop.addEventListener("click", () => this.exportComparisonReport(true));
+    }
+
+    const btnExportCard = document.getElementById("btn-export-comparison-html");
+    if (btnExportCard) {
+      btnExportCard.addEventListener("click", () => this.exportComparisonReport(true));
+    }
+
+    const btnViewCard = document.getElementById("btn-open-comparison-tab");
+    if (btnViewCard) {
+      btnViewCard.addEventListener("click", () => this.exportComparisonReport(false));
+    }
+
     // Modal settings — wire to the actual IDs in index.html
     const statusBadge  = document.getElementById("connection-status");
     const btnSettings  = document.getElementById("btn-settings");
@@ -81,9 +96,26 @@ export class SimRunner {
       const data = await res.json();
       if (data.running) {
         this.attachToSimulationStream();
+      } else if (data.results && data.results.players && data.results.players.length > 1) {
+        this.renderCompareLeaderboard(data.results.players, data.results.baseline_name);
       }
     } catch (e) {
       console.error("Failed to check simulation status:", e);
+    }
+  }
+
+  exportComparisonReport(download = true) {
+    const baseline = this.lastBaselineName || "";
+    const url = `/api/export/comparison?${download ? 'download=1&' : ''}${baseline ? 'baseline=' + encodeURIComponent(baseline) : ''}`;
+    if (download) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fellowsimc_comparison_${new Date().toISOString().slice(0, 10)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      window.open(url, "_blank");
     }
   }
 
@@ -147,14 +179,18 @@ export class SimRunner {
   renderCompareLeaderboard(players, baselineName) {
     const compareCard = document.getElementById("compare-results-card");
     const container = document.getElementById("compare-leaderboard-container");
+    const btnExportTop = document.getElementById("btn-export-comparison-top");
     if (!compareCard || !container) return;
 
     if (!players || players.length <= 1) {
       compareCard.classList.add("hidden");
+      if (btnExportTop) btnExportTop.classList.add("hidden");
       return;
     }
 
+    this.lastBaselineName = baselineName;
     compareCard.classList.remove("hidden");
+    if (btnExportTop) btnExportTop.classList.remove("hidden");
     container.innerHTML = "";
 
     const topDps = players[0].dps || 1;
@@ -241,9 +277,10 @@ export class SimRunner {
   loadActorAsEditor(actorName) {
     const raw = (actorName || "").trim();
     if (!raw) return;
+    const normalizedRaw = raw.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
 
     // 1. Current Editor
-    if (raw.toLowerCase() === "current_editor" || raw.toLowerCase() === "current editor") {
+    if (normalizedRaw.toLowerCase() === "current editor" || raw.toLowerCase() === "current_editor") {
       ProfileGenerator.updateEditor(this.state);
       this.refreshAllControllers();
       return;
@@ -253,6 +290,7 @@ export class SimRunner {
     const matchedBuild = this.state.savedBuilds.find(b =>
       b.name === raw ||
       b.id === raw ||
+      b.name.toLowerCase() === normalizedRaw.toLowerCase() ||
       b.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_') === raw
     );
     if (matchedBuild) {
@@ -266,15 +304,16 @@ export class SimRunner {
     }
 
     // 3. Next Talent Finder
-    if (raw.startsWith("Next: ")) {
-      const talName = raw.replace(/^Next:\s*/, '').replace(/\s*\(\+\d+pt\)$/, '').trim();
+    if (normalizedRaw.startsWith("Next: ")) {
+      const talName = normalizedRaw.replace(/^Next:\s*/i, '').replace(/\s*\(\+\d+pt\)$/i, '').trim();
+      const cleanTal = talName.toLowerCase().replace(/[^a-z0-9]/g, '');
       const heroKey = (this.state.selectedHero || "rime").toLowerCase();
       const heroDef = HERO_DEFINITIONS[heroKey] || HERO_DEFINITIONS["rime"];
       let foundId = null;
       if (heroDef && heroDef.tiers) {
         for (const tier of heroDef.tiers) {
           for (const t of (tier.talents || [])) {
-            if (t.name.toLowerCase() === talName.toLowerCase() || t.id.toLowerCase() === talName.toLowerCase()) {
+            if (t.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTal || t.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTal) {
               foundId = t.id;
               break;
             }
@@ -283,23 +322,28 @@ export class SimRunner {
         }
       }
       if (foundId) {
-        if (!this.state.selectedTalents.includes(foundId)) {
-          this.state.selectedTalents.push(foundId);
+        if (!(this.state.selectedTalents instanceof Set)) {
+          this.state.selectedTalents = new Set(this.state.selectedTalents || []);
         }
+        this.state.selectedTalents.add(foundId);
       }
       this.refreshAllControllers();
       return;
     }
 
     // 4. Blessings Finder
-    // Labels: "Name (+1 -> N/4)"  |  "Name (N/4)"  |  "Name (4/4 Max)"  |  "Name (+4 Max Keep Others)"
-    const bMatch = raw.match(/^(.+?)\s*(?:\(\+1\s*->\s*(\d+)\/4\)|\((\d+)\/4(?:\s+Max)?\)|\(\+4 Max Keep Others\))$/i);
+    // Labels: "Name (+1 -> N/4)" | "Name (N/4)" | "Name (4/4 Max)" | "Name (+4 Max Keep Others)"
+    const bMatch = normalizedRaw.match(/^(.+?)\s*(?:\(\+1\s*(?:->|to)\s*(\d+)\/4\)|\((\d+)\/4(?:\s+Max)?\)|\(\+4 Max Keep Others\))$/i);
     if (bMatch) {
       const bName = bMatch[1].trim();
-      const isKeepOthers = raw.includes("Keep Others");
-      const isIsolated   = !isKeepOthers && (raw.includes("Max") || bMatch[3]);
-      const count = bMatch[2] ? parseInt(bMatch[2]) : (bMatch[3] ? parseInt(bMatch[3]) : 4);
-      const foundBlessing = ALL_BLESSINGS.find(b => b.name.toLowerCase() === bName.toLowerCase() || b.id.toLowerCase() === bName.toLowerCase());
+      const cleanB = bName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isKeepOthers = normalizedRaw.toLowerCase().includes("keep others") || normalizedRaw.includes("+1");
+      const isIsolated   = !isKeepOthers && (normalizedRaw.toLowerCase().includes("max") || Boolean(bMatch[3]));
+      const count = bMatch[2] ? parseInt(bMatch[2], 10) : (bMatch[3] ? parseInt(bMatch[3], 10) : 4);
+      const foundBlessing = ALL_BLESSINGS.find(b =>
+        b.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanB ||
+        b.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanB
+      );
       if (foundBlessing) {
         if (!this.state.blessingCounts) this.state.blessingCounts = {};
         if (isIsolated) {
@@ -307,7 +351,11 @@ export class SimRunner {
           this.state.blessingCounts = { [foundBlessing.id]: count };
         } else {
           // +1 or +4 Max Keep Others: keep existing blessings, update this one
-          this.state.blessingCounts[foundBlessing.id] = count;
+          if (count > 0) {
+            this.state.blessingCounts[foundBlessing.id] = count;
+          } else {
+            delete this.state.blessingCounts[foundBlessing.id];
+          }
         }
       }
       this.refreshAllControllers();
@@ -315,16 +363,22 @@ export class SimRunner {
     }
 
     // 5. Traits Finder
-    // Labels: "Name (+1 -> RN)"  |  "Name (RN)"  |  "Name (4/4 Max)"  |  "Name (+4 Max Keep Others)"
-    const trMatch = raw.match(/^(.+?)\s*(?:\(\+1\s*->\s*R(\d+)\)|\(R(\d+)\)|\(4\/4(?:\s+Max)?\)|\(\+4 Max Keep Others\))$/i);
+    // Labels: "Name (+1 -> RN)" | "Name (RN)" | "Name (4/4 Max)" | "Name (+4 Max Keep Others)"
+    const trMatch = normalizedRaw.match(/^(.+?)\s*(?:\(\+1\s*(?:->|to)\s*R?(\d+)\)|\(R(?:ank)?\s*(\d+)\)|\((\d+)\/4(?:\s+Max)?\)|\(\+4 Max Keep Others\))$/i);
     if (trMatch) {
       const trName = trMatch[1].trim();
-      const isKeepOthers = raw.includes("Keep Others");
-      const isIsolated   = !isKeepOthers && (raw.includes("Max") || trMatch[3] || raw.includes("4/4"));
+      const cleanTr = trName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isKeepOthers = normalizedRaw.toLowerCase().includes("keep others") || normalizedRaw.includes("+1");
+      const isIsolated   = !isKeepOthers && (normalizedRaw.toLowerCase().includes("max") || Boolean(trMatch[3]) || Boolean(trMatch[4]));
       let rank = 4;
-      if (trMatch[2]) rank = parseInt(trMatch[2]);
-      else if (trMatch[3]) rank = parseInt(trMatch[3]);
-      const foundTrait = ALL_WEAPON_TRAITS.find(t => t.name.toLowerCase() === trName.toLowerCase() || t.id.toLowerCase() === trName.toLowerCase());
+      if (trMatch[2]) rank = parseInt(trMatch[2], 10);
+      else if (trMatch[3]) rank = parseInt(trMatch[3], 10);
+      else if (trMatch[4]) rank = parseInt(trMatch[4], 10);
+
+      const foundTrait = ALL_WEAPON_TRAITS.find(t =>
+        t.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTr ||
+        t.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTr
+      );
       if (foundTrait) {
         if (!this.state.traitCounts) this.state.traitCounts = {};
         if (isIsolated) {
@@ -332,7 +386,11 @@ export class SimRunner {
           this.state.traitCounts = { [foundTrait.id]: rank };
         } else {
           // +1 or +4 Max Keep Others: keep existing traits, update this one
-          this.state.traitCounts[foundTrait.id] = rank;
+          if (rank > 0) {
+            this.state.traitCounts[foundTrait.id] = rank;
+          } else {
+            delete this.state.traitCounts[foundTrait.id];
+          }
         }
       }
       this.refreshAllControllers();
@@ -340,10 +398,14 @@ export class SimRunner {
     }
 
     // 6. Sets Finder
-    if (raw.startsWith("Set: ") || raw.startsWith("Solo Set: ")) {
-      const isSolo = raw.startsWith("Solo Set: ");
-      const setName = raw.replace(/^(?:Set:\s*|Solo Set:\s*)/, '').replace(/\s*\(\+1\)$/, '').trim();
-      const foundSet = ALL_GEAR_SETS.find(s => s.name.toLowerCase() === setName.toLowerCase() || s.id.toLowerCase() === setName.toLowerCase());
+    if (normalizedRaw.startsWith("Set: ") || normalizedRaw.startsWith("Solo Set: ")) {
+      const isSolo = normalizedRaw.startsWith("Solo Set: ");
+      const setName = normalizedRaw.replace(/^(?:Set:\s*|Solo Set:\s*)/i, '').replace(/\s*\(\+1\)$/i, '').trim();
+      const cleanSet = setName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const foundSet = ALL_GEAR_SETS.find(s =>
+        s.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanSet ||
+        s.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanSet
+      );
       if (foundSet) {
         if (isSolo) {
           this.state.activeSets = new Set([foundSet.id]);
@@ -358,22 +420,41 @@ export class SimRunner {
       return;
     }
 
-    // 7. Stats Finder
-    const statRatingsMatch = raw.match(/C[:]?\s*(\d+)\s+H[:]?\s*(\d+)\s+E[:]?\s*(\d+)\s+S[:]?\s*(\d+)/i);
-    if (statRatingsMatch) {
-      if (!this.state.stats) this.state.stats = {};
-      this.state.stats.crit = parseInt(statRatingsMatch[1]);
-      this.state.stats.haste = parseInt(statRatingsMatch[2]);
-      this.state.stats.expertise = parseInt(statRatingsMatch[3]);
-      this.state.stats.spirit = parseInt(statRatingsMatch[4]);
+    // 7. Gem Powers Finder
+    const gemMatch = normalizedRaw.match(/^(.+?)\s*(?:\(\+1 Tier\s*->\s*T\d+:\s*(\d+)\s*Power\)|\(T\d+:\s*(\d+)\s*(?:Capstone|Power|Major[^\)]*)\)|\(T\d+:\s*(\d+)\s*Capstone Keep Others\))$/i);
+    if (gemMatch) {
+      const gName = gemMatch[1].trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isKeepOthers = normalizedRaw.toLowerCase().includes("keep others") || normalizedRaw.includes("+1 tier");
+      const pwr = parseInt(gemMatch[2] || gemMatch[3] || gemMatch[4] || "1500", 10);
+      const gemIds = ["sapphire", "amethyst", "emerald", "ruby", "diamond", "topaz"];
+      const foundGemId = gemIds.find(id => id === gName);
+      if (foundGemId) {
+        if (!this.state.gems) this.state.gems = {};
+        if (!isKeepOthers) {
+          gemIds.forEach(id => { this.state.gems[id] = 0; });
+        }
+        this.state.gems[foundGemId] = pwr;
+      }
       this.refreshAllControllers();
       return;
     }
 
-    if (raw.startsWith("+")) {
-      const statDeltaMatch = raw.match(/^\+(\d+)\s*(Crit|Haste|Expertise|Spirit)/i);
+    // 8. Stats Finder
+    const statRatingsMatch = normalizedRaw.match(/C[:]?\s*(\d+)\s+H[:]?\s*(\d+)\s+E[:]?\s*(\d+)\s+S[:]?\s*(\d+)/i);
+    if (statRatingsMatch) {
+      if (!this.state.stats) this.state.stats = {};
+      this.state.stats.crit = parseInt(statRatingsMatch[1], 10);
+      this.state.stats.haste = parseInt(statRatingsMatch[2], 10);
+      this.state.stats.expertise = parseInt(statRatingsMatch[3], 10);
+      this.state.stats.spirit = parseInt(statRatingsMatch[4], 10);
+      this.refreshAllControllers();
+      return;
+    }
+
+    if (normalizedRaw.startsWith("+")) {
+      const statDeltaMatch = normalizedRaw.match(/^\+(\d+)\s*(Crit|Haste|Expertise|Spirit)/i);
       if (statDeltaMatch) {
-        const delta = parseInt(statDeltaMatch[1]);
+        const delta = parseInt(statDeltaMatch[1], 10);
         const sType = statDeltaMatch[2].toLowerCase();
         if (!this.state.stats) this.state.stats = {};
         if (sType.startsWith("crit")) this.state.stats.crit = (this.state.stats.crit || 0) + delta;
@@ -401,6 +482,9 @@ export class SimRunner {
       this.gearController.renderBlessings();
     }
     ProfileGenerator.updateEditor(this.state);
+    if (typeof this.state.notify === "function") {
+      this.state.notify();
+    }
   }
 
   async runSimulation() {

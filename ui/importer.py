@@ -63,14 +63,8 @@ WEAPON_MAP = {
     "Zeraleths Hunger": "zeraleths_hunger"
 }
 
-# Weapons that have innate built-in traits in Fellowship
-WEAPON_INNATE_TRAITS = {
-    "chronoshift": {
-        "emerald_judgement": 1,
-        "hunters_focus": 1,
-        "seized_opportunity": 1
-    }
-}
+# Weapons that have innate built-in traits in Fellowship (gear is imported 1:1)
+WEAPON_INNATE_TRAITS = {}
 
 SLOT_NAME_MAP = {
     0: "head",
@@ -280,12 +274,7 @@ def fetch_character_data(client_id, client_secret, report_code, fight_id, player
                     target_player = p
                     
     if not target_player and all_players:
-        for p in all_players:
-            if p.get("type", "").lower() == "rime":
-                target_player = p
-                break
-        if not target_player:
-            target_player = all_players[0]
+        target_player = all_players[0]
 
     damage_table = report.get("damageDone", {})
     damage_entries = damage_table.get("data", {}).get("entries", []) if isinstance(damage_table, dict) and isinstance(damage_table.get("data"), dict) else []
@@ -310,18 +299,37 @@ def fetch_character_data(client_id, client_secret, report_code, fight_id, player
     }
 
 def fetch_dungeon_route(client_id, client_secret, report_code, fight_id, scale_pct=100.0):
-    """Fetch enemy damage taken from a log fight and generate a route."""
+    """Fetch enemy damage taken and dynamic pull breakdown from a log fight to generate a 100% base route."""
     token = get_access_token(client_id, client_secret)
     query = """
-    query GetFightDamageTaken($code: String!, $fightIDs: [Int]!) {
+    query GetFullDungeonReport($code: String!, $fightIDs: [Int]!) {
       reportData {
         report(code: $code) {
+          masterData {
+            actors {
+              id
+              name
+              gameID
+              type
+              subType
+            }
+          }
           fights(fightIDs: $fightIDs) {
             id
             name
             startTime
             endTime
             kill
+            dungeonPulls {
+              id
+              name
+              startTime
+              endTime
+              enemyNPCs {
+                gameID
+                id
+              }
+            }
           }
           table(dataType: DamageTaken, fightIDs: $fightIDs, hostilityType: Enemies)
         }
@@ -330,71 +338,109 @@ def fetch_dungeon_route(client_id, client_secret, report_code, fight_id, scale_p
     """
     res = query_graphql(token, query, {"code": report_code, "fightIDs": [fight_id]})
     report = res.get("data", {}).get("reportData", {}).get("report", {})
-    fights = report.get("fights", [])
-    fight_name = fights[0].get("name", "Wyrmheart") if fights else "Wyrmheart"
+    actors_map = {a["id"]: a for a in report.get("masterData", {}).get("actors", [])} if isinstance(report.get("masterData"), dict) else {}
     
-    scale_factor = (scale_pct / 100.0) if scale_pct > 0 else 1.0
+    fights = report.get("fights", [])
+    fight_obj = fights[0] if fights else {}
+    fight_name = fight_obj.get("name", "Dungeon Route")
+    start_time = fight_obj.get("startTime", 0)
+    end_time = fight_obj.get("endTime", 0)
+    duration_s = max(60, int((end_time - start_time) / 1000.0)) if (end_time > start_time) else 757
+    
+    dungeon_pulls = fight_obj.get("dungeonPulls") or []
+    
+    enemy_table = report.get("table", {})
+    enemy_entries = enemy_table.get("data", {}).get("entries", []) if isinstance(enemy_table, dict) and isinstance(enemy_table.get("data"), dict) else []
+    actor_dmg_map = {e.get("id"): e.get("total", 0) for e in enemy_entries if isinstance(e, dict) and "id" in e}
+    total_enemy_dmg = sum(actor_dmg_map.values()) if actor_dmg_map else 50000000
     
     lines = []
     lines.append(f"# ====================================================================")
-    lines.append(f"# Dungeon Route - {fight_name} 62 (Exported from {report_code} Fight {fight_id})")
-    lines.append(f"# Mob HP Scaled to {scale_pct:.2f}% (Player Damage Share)")
+    lines.append(f"# Dungeon Route - {fight_name} (Exported from {report_code} Fight {fight_id})")
+    lines.append(f"# Fight Duration: {duration_s}s (~{duration_s/60:.1f} min) | 100% Base Mob Health")
     lines.append(f"# ====================================================================")
     lines.append("")
     lines.append("fight_style=DungeonRoute")
-    lines.append("max_time=757")
+    lines.append(f"max_time={duration_s}")
     lines.append("vary_combat_length=0.0")
-    lines.append(f'enemy="{fight_name}"')
+    sanitized_dungeon = re.sub(r'[^a-zA-Z0-9_]', '', fight_name.replace(' ', '_').replace("'", ""))
+    lines.append(f'enemy="{sanitized_dungeon}"')
     lines.append("ignore_invulnerable_targets=1")
     lines.append("")
     
-    # Pull 1: Trash Pack & Timed Waves
-    p1_golem = int(5000000 * scale_factor)
-    p1_sentinel = int(2000000 * scale_factor)
-    p1_blade = int(1354000 * scale_factor)
-    p1_stalker = int(1283000 * scale_factor)
-    p1_assassin = int(1212000 * scale_factor)
-    p1_remnant = int(713000 * scale_factor)
-    p1_recruit = int(499000 * scale_factor)
-    p1_shardling = int(285000 * scale_factor)
+    if dungeon_pulls:
+        # Merge consecutive pulls with the same name if necessary
+        merged_pulls = []
+        for p in dungeon_pulls:
+            p_name = p.get("name", "")
+            if merged_pulls and p_name and (p_name == merged_pulls[-1].get("name", "") or ("Boss" in p_name and "Boss" in merged_pulls[-1].get("name", ""))):
+                merged_pulls[-1]["endTime"] = p.get("endTime", merged_pulls[-1]["endTime"])
+                existing_ids = {n.get("id") for n in merged_pulls[-1].get("enemyNPCs", [])}
+                for n in p.get("enemyNPCs", []):
+                    if n.get("id") not in existing_ids:
+                        merged_pulls[-1]["enemyNPCs"].append(n)
+                        existing_ids.add(n.get("id"))
+            else:
+                merged_pulls.append(dict(p))
+                
+        total_pull_time = max(1.0, sum((p.get("endTime", 0) - p.get("startTime", 0)) / 1000.0 for p in merged_pulls))
+        prev_end_s = 0
+        
+        for idx, p in enumerate(merged_pulls, 1):
+            p_start_s = (p.get("startTime", 0) - start_time) / 1000.0
+            p_end_s = (p.get("endTime", 0) - start_time) / 1000.0
+            dur_s = max(5, int(p_end_s - p_start_s))
+            delay_s = max(0, min(15, int(p_start_s - prev_end_s)))
+            prev_end_s = p_end_s
+            
+            pull_weight = dur_s / total_pull_time
+            pull_target_dmg = total_enemy_dmg * pull_weight
+            
+            npc_entries = p.get("enemyNPCs", [])
+            npc_raw_totals = [max(100000, actor_dmg_map.get(n.get("id"), 500000)) for n in npc_entries]
+            sum_npc_totals = max(1, sum(npc_raw_totals))
+            
+            enemies_list = []
+            for npc, raw_tot in zip(npc_entries, npc_raw_totals):
+                act_id = npc.get("id")
+                act = actors_map.get(act_id, {})
+                raw_name = act.get("name", f"Enemy_{act_id}")
+                clean_name = re.sub(r'[^a-zA-Z0-9_]', '', raw_name.replace(' ', '_').replace("'", ""))
+                
+                hp = max(150000, int(pull_target_dmg * (raw_tot / sum_npc_totals)))
+                
+                if any(b in clean_name for b in ["Noor", "Koros", "Cithrel", "Malgut", "Veras", "Ghorn"]):
+                    clean_name = f"BOSS_{clean_name}"
+                elif any(pr in clean_name for pr in ["Golem", "Scholar", "Sentinel", "Corrupter", "Butcher", "Brute"]):
+                    clean_name = f"PRIO_{clean_name}"
+                    
+                enemies_list.append(f'"{clean_name}_{act_id}":{hp}')
+                
+            if not enemies_list:
+                enemies_list.append(f'"Enemy_Pack_{idx}":{int(pull_target_dmg)}')
+                
+            enemies_str = "|".join(enemies_list)
+            lines.append(f"# Pull {idx}: {p.get('name', 'Pack')} (Duration: {dur_s}s, Transit Delay: {delay_s}s)")
+            lines.append(f"raid_events+=/pull,pull={idx},delay={delay_s:03d},enemies={enemies_str}")
+            lines.append("")
+    else:
+        # Fallback if log doesn't have dungeonPulls data
+        top_enemies = enemy_entries[:15]
+        enemies_parts = []
+        for e in top_enemies:
+            name = re.sub(r'[^a-zA-Z0-9_]', '', e.get("name", "Enemy").replace(' ', '_').replace("'", ""))
+            tot_hp = max(200000, e.get("total", 1000000))
+            enemies_parts.append(f'"{name}":{tot_hp}')
+        lines.append(f"# Dungeon Encounter Pull")
+        lines.append(f"raid_events+=/pull,pull=1,delay=000,enemies={'|'.join(enemies_parts)}")
+        lines.append("")
     
-    p1_enemies = (
-        f'"PRIO_Spellbound_Golem":{p1_golem}|'
-        f'"PRIO_Eldrin_Sentinel_1":{p1_sentinel}|"PRIO_Eldrin_Sentinel_2":{p1_sentinel}|'
-        f'"Blade_of_Cithrel_1":{p1_blade}|"Blade_of_Cithrel_2":{p1_blade}|'
-        f'"Tundra_Stalker_1":{p1_stalker}|"Coldheart_Assassin":{p1_assassin}|'
-        f'"Frozen_Remnant_1":{p1_remnant}|"Frozen_Remnant_2":{p1_remnant}|'
-        f'"Eldrin_Recruit_1":{p1_recruit}:1:6|"Ice_Shardling_1":{p1_shardling}:1:6'
-    )
-    lines.append(f"raid_events+=/pull,pull=1,delay=000,enemies={p1_enemies}")
-    lines.append(f"raid_events+=/adds,pull=1,first=35s,count=5,health={p1_recruit},duration=265s,cooldown=9999s")
-    lines.append(f"raid_events+=/adds,pull=1,first=70s,count=5,health={p1_recruit},duration=230s,cooldown=9999s")
-    lines.append(f"raid_events+=/adds,pull=1,first=110s,count=5,health={p1_recruit},duration=190s,cooldown=9999s")
-    lines.append(f"raid_events+=/adds,pull=1,first=150s,count=5,health={p1_recruit},duration=150s,cooldown=9999s")
-    lines.append(f"raid_events+=/adds,pull=1,first=195s,count=5,health={p1_recruit},duration=105s,cooldown=9999s")
-    lines.append(f"raid_events+=/adds,pull=1,first=240s,count=5,health={p1_recruit},duration=60s,cooldown=9999s")
-    
-    # Pull 2: Boss 1 (Ghorn the Avalanche)
-    p2_ghorn = int(9266649 * scale_factor)
-    p2_enemies = (
-        f'"BOSS_Ghorn_the_Avalanche":{p2_ghorn}|'
-        f'"PRIO_Eldrin_Sentinel_1":{p1_sentinel}|"PRIO_Eldrin_Sentinel_2":{p1_sentinel}|'
-        f'"Blade_of_Cithrel_1":{p1_blade}|"Blade_of_Cithrel_2":{p1_blade}|"Blade_of_Cithrel_3":{p1_blade}|'
-        f'"Eldrin_Recruit_1":{p1_recruit}:1:8'
-    )
-    lines.append(f"raid_events+=/pull,pull=2,delay=003,enemies={p2_enemies}")
-    lines.append(f"raid_events+=/adds,pull=2,first=40s,count=5,health={p1_recruit},duration=135s,cooldown=9999s")
-    lines.append(f"raid_events+=/adds,pull=2,first=85s,count=5,health={p1_recruit},duration=90s,cooldown=9999s")
-    lines.append(f"raid_events+=/adds,pull=2,first=130s,count=5,health={p1_recruit},duration=45s,cooldown=9999s")
-    
-    # Pull 3: Boss 2 (Apostate Veras)
-    p3_veras = int(17820479 * scale_factor)
-    lines.append(f'raid_events+=/pull,pull=3,delay=003,enemies="BOSS_Apostate_Veras":{p3_veras}')
-    
+    route_text = "\n".join(lines)
     return {
         "fight_name": fight_name,
-        "route_text": "\n".join(lines),
-        "enemies_count": 28,
+        "route_text": route_text,
+        "route_text_100": fetch_dungeon_route(client_id, client_secret, report_code, fight_id, scale_pct=100.0)["route_text"] if scale_pct != 100.0 else route_text,
+        "enemies_count": len(enemy_entries) or 13,
         "scale_pct": scale_pct
     }
 
@@ -506,6 +552,15 @@ def generate_simc_profile(character_data, options=None):
     if weapon_name and weapon_name in WEAPON_INNATE_TRAITS:
         for in_tname, in_rank in WEAPON_INNATE_TRAITS[weapon_name].items():
             trait_counts[in_tname] = min(4, trait_counts.get(in_tname, 0) + in_rank)
+
+    # Merge relic weapon tree traits from combatantInfo.artifact
+    for art in combatant.get("artifact", []):
+        tot = art.get("total", 0)
+        if tot > 0:
+            aname = art.get("name", "").lower()
+            if aname in TRAIT_SIMC_MAP:
+                simc_tname = TRAIT_SIMC_MAP[aname]
+                trait_counts[simc_tname] = min(4, trait_counts.get(simc_tname, 0) + tot)
 
     # Primary Stat Mapping for All Classes
     hero_key = (hero_type or "rime").lower()
@@ -755,26 +810,21 @@ def generate_simc_profile(character_data, options=None):
             lines.append(f"weapon_trait.{tname}={trank}")
         lines.append("")
     
-    # Gear Items (without affixes — affixes all go on trinket2/relic2)
+    # Blessings
+    if blessing_counts:
+        lines.append("# Blessings")
+        for bname, count in sorted(blessing_counts.items()):
+            capped = min(4, max(0, count))
+            if capped > 0:
+                lines.append(f"blessings.{bname}={capped}")
+        lines.append("")
+
+    # Gear Items
     if gear_items_output:
         lines.append(f"# Gear Items")
         for g_line in gear_items_output:
-            if blessings_list and g_line.startswith("trinket2="):
-                continue
             lines.append(g_line)
         lines.append("")
-
-    # All Blessings consolidated on trinket2=relic2
-    if blessings_list:
-        all_blessing_affixes = []
-        for bname, count in blessing_counts.items():
-            capped = min(4, max(0, count))
-            for _ in range(capped):
-                all_blessing_affixes.append(bname)
-        if all_blessing_affixes:
-            lines.append(f"# Blessings (All affixes on Relic 2)")
-            lines.append(f"trinket2=relic2,affixes={'/'.join(all_blessing_affixes)}")
-            lines.append("")
 
     # Talents
     if talents:
@@ -849,90 +899,3 @@ def scale_simc_route(route_text: str, scale_pct: float) -> str:
         out_lines.append(line)
         
     return "\n".join(out_lines)
-
-
-def fetch_dungeon_route(client_id, client_secret, code, fight_id, scale_pct=100.0):
-    """Fetch dungeon fight data from FellowshipLogs and generate 100% and scaled route text."""
-    token = get_access_token(client_id, client_secret)
-    
-    query = """
-    query GetDungeonRoute($code: String!) {
-      reportData {
-        report(code: $code) {
-          title
-          fights {
-            id
-            name
-            startTime
-            endTime
-            kill
-          }
-          masterData {
-            actors {
-              id
-              name
-              type
-              subType
-              gameID
-            }
-          }
-        }
-      }
-    }
-    """
-    res = query_graphql(token, query, {"code": code})
-    report = res.get("data", {}).get("reportData", {}).get("report", {})
-    fights = report.get("fights", []) or []
-    target_id = int(fight_id) if fight_id else 1
-    fight = next((f for f in fights if int(f["id"]) == target_id), (fights[0] if fights else None))
-    
-    if not fight:
-        raise ValueError(f"Fight {fight_id} not found in report {code}")
-        
-    fight_name = fight.get("name", "Dungeon")
-    duration_s = max(1, int(round((fight["endTime"] - fight["startTime"]) / 1000.0)))
-    
-    # Check for known pre-extracted 100% routes if matching report & fight 32 (Wyrmheart)
-    known_100_path = os.path.join(os.path.dirname(__file__), "..", "apl", "routes", "wyrmheart_62_100.simc")
-    if os.path.exists(known_100_path) and (fight_id == 32 or "wyrmheart" in fight_name.lower()):
-        with open(known_100_path, "r", encoding="utf-8") as f:
-            route_text_100 = f.read()
-    else:
-        # Build dynamic route header & pulls
-        lines = [
-            f"# ====================================================================",
-            f"# {fight_name} Dungeon Route (100% Full Health)",
-            f"# Extracted from Fellowship Logs Report: {code} (Fight {fight_id})",
-            f"# ====================================================================",
-            f"",
-            f"fight_style=DungeonRoute",
-            f"max_time={duration_s}",
-            f"vary_combat_length=0.0",
-            f'enemy="{fight_name.replace(" ", "")}"',
-            f"ignore_invulnerable_targets=1",
-            f""
-        ]
-        
-        pulls = fight.get("dungeonPulls") or []
-        if not pulls:
-            lines.append(f'raid_events+=/pull,pull=1,delay=000,enemies="BOSS_{fight_name.replace(" ", "_")}":10000000')
-        else:
-            for idx, p in enumerate(pulls, 1):
-                p_name = p.get("name", f"Pull_{idx}").replace(" ", "_")
-                lines.append(f"# Pull {idx}: {p.get('name')}")
-                lines.append(f'raid_events+=/pull,pull={idx},delay=003,enemies="BOSS_{p_name}":5000000')
-                lines.append("")
-        route_text_100 = "\n".join(lines)
-        
-    route_text_scaled = scale_simc_route(route_text_100, scale_pct)
-    
-    return {
-        "fight_id": fight_id,
-        "fight_name": fight_name,
-        "duration": duration_s,
-        "route_text_100": route_text_100,
-        "route_text": route_text_100,
-        "route_text_scaled": route_text_scaled,
-        "scale_pct": scale_pct,
-        "enemies_count": len(re.findall(r'enemies=', route_text_100))
-    }

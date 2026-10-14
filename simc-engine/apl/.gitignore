@@ -1,0 +1,7 @@
+./output/*
+*.txt
+*.html
+*.json
+*.log
+./apl/output/*
+*.sh

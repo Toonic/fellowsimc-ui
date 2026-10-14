@@ -311,9 +311,6 @@ export class ProfileGenerator {
 
     } else {
       // Single Actor Sim Mode
-      lines.push(ProfileGenerator.generateActorBlock(state, state.selectedPlayerName || "Hero"));
-      lines.push(``);
-
       if (encounterMode === "dungeon") {
         lines.push(...getDungeonRouteLines(state));
       } else if (encounterMode === "single_target") {
@@ -331,6 +328,8 @@ export class ProfileGenerator {
         lines.push(`fight_style=Patchwerk`);
         lines.push(`desired_targets=${targets}`);
       }
+      lines.push(``);
+      lines.push(ProfileGenerator.generateActorBlock(state, state.selectedPlayerName || "Hero"));
     }
 
     return lines.join("\n");

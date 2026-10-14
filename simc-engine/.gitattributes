@@ -1,0 +1,9 @@
+engine/dbc/generated/* linguist-vendored
+dbc_extract/cache/* linguist-vendored
+vs/msinttypes/* linguist-vendored
+engine/lib/rapidjson/* linguist-vendored
+engine/lib/rapidxml/* linguist-vendored
+engine/lib/utf8.h linguist-vendored
+engine/lib/utf8/* linguist-vendored
+engine/lib/fmt/* linguist-vendored
+locale/* linguist-vendored

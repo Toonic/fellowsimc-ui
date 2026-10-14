@@ -9,6 +9,9 @@
     <div class="results-quick-actions">
       <button type="button" id="btn-stop-sim" class="btn btn-danger hidden">STOP SIM</button>
       <button id="btn-run-sim" class="btn btn-primary">RUN SIM</button>
+      <button type="button" id="btn-export-comparison-top" class="btn btn-gold hidden" title="Export build comparison breakdown to a standalone HTML file">
+        EXPORT COMPARISON
+      </button>
       <button id="btn-open-html-report" class="btn btn-secondary hidden">
         OPEN FULL HTML REPORT
       </button>
@@ -17,9 +20,21 @@
 
   <!-- Compare Results Leaderboard Card (Raidbots Style) -->
   <div id="compare-results-card" class="card compare-leaderboard-card hidden">
-    <div class="card-header">
-      <h2>BUILD COMPARISON RANKINGS</h2>
-      <p>Side-by-side DPS comparison leaderboard and percentage delta rankings.</p>
+    <div class="card-header compare-card-header">
+      <div>
+        <h2>BUILD COMPARISON RANKINGS</h2>
+        <p>Side-by-side DPS comparison leaderboard and percentage delta rankings.</p>
+      </div>
+      <div class="compare-header-actions">
+        <button type="button" id="btn-open-comparison-tab" class="btn btn-secondary btn-sm" title="View standalone comparison breakdown in a new browser tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span>VIEW REPORT</span>
+        </button>
+        <button type="button" id="btn-export-comparison-html" class="btn btn-gold btn-sm" title="Download standalone HTML file to send to anyone">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>EXPORT HTML</span>
+        </button>
+      </div>
     </div>
     <div class="card-body">
       <div id="compare-leaderboard-container" class="compare-leaderboard-list">

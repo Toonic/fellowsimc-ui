@@ -12,14 +12,27 @@ release-package/
 # Build & Intermediate Directories
 bin/
 build/
-vs/
 .vs/
+vs/int/
+vs/bin/
+vs/x64/
 out/
 Debug/
 Release/
 x64/
 x86/
 int/
+*.obj
+*.iobj
+*.ipdb
+*.pdb
+*.tlog
+*.lastbuildstate
+*.idb
+*.opendb
+*.sdf
+*.suo
+*.user
 
 # Python Cache & Environments
 __pycache__/
@@ -33,13 +46,36 @@ venv/
 # Local User Configurations & Saved Builds
 ui/config.json
 /builds/**
-results.html
-latest_sim.html
-latest_sim.txt
-custom_sim.simc
-simc_log.txt
-simc_report.*
+
+# Generated Simulation & Replay Artifacts (Root & Dynamic)
+/*.html
+/*.json
+/*.simc
+/*.csv
+*.txt
 *.log
+latest_sim.*
+results.html
+custom_sim.simc
+simc_report.*
+simc_report_*
+results_*.json
+simc_*.json
+
+# Local Research Scripts & Test Scratches
+tools/local_research/
+sim_tests/
+test_*
+scratch_*
+sim_debug_*
+sim_run_*
+calibrated_*
+replay_*
+exact_replay_*
+exact_simc_test.*
+baseline_before_engine_cleanup.json
+fellowship_replay_suite.zip
+simc_test_report.json
 
 # Editor & OS Artifacts
 .DS_Store

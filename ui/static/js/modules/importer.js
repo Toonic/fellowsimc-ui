@@ -22,6 +22,11 @@ export class LogImporter {
       btnLoadChar.addEventListener("click", () => this.importCharacter());
     }
 
+    const btnRunReplay = document.getElementById("btn-run-replay");
+    if (btnRunReplay) {
+      btnRunReplay.addEventListener("click", () => this.runReplay());
+    }
+
     const btnImportLogRoute = document.getElementById("btn-import-log-route");
     if (btnImportLogRoute) {
       btnImportLogRoute.addEventListener("click", () => this.importCustomRoute());
@@ -360,6 +365,19 @@ export class LogImporter {
       this.gearController.renderWeaponTraits();
       this.gearController.renderBlessings();
 
+      // Automatically sync target player's damage share % to route scale
+      const dmgShare = data.damage_share_pct || (data.character_data && data.character_data.damage_share_pct);
+      if (dmgShare && dmgShare > 0) {
+        this.state.damageSharePct = dmgShare;
+        this.state.scalePct = dmgShare;
+        this.state.enableScale = true;
+        
+        const inpScale = document.getElementById("input-scale-pct");
+        if (inpScale) inpScale.value = dmgShare;
+        const chkScale = document.getElementById("check-scale-damage");
+        if (chkScale) chkScale.checked = true;
+      }
+
       ProfileGenerator.updateEditor(this.state);
     } catch (e) {
       showThemedNotice({
@@ -395,7 +413,7 @@ export class LogImporter {
         body: JSON.stringify({
           url_or_code: urlOrCode,
           fight_id: fightId,
-          scale_pct: this.state.scalePct
+          scale_pct: 100.0
         })
       });
       const data = await res.json();
@@ -411,11 +429,13 @@ export class LogImporter {
         return;
       }
 
+      // Store 100% full mob health route as base
       this.state.customRouteText100 = data.route_text_100 || data.route_text;
       this.state.customRouteText = data.route_text;
       
+      const currentScale = this.state.scalePct || 100.0;
       if (statusDiv) {
-        statusDiv.textContent = `Successfully imported 100% Health Route: ${data.fight_name} (${data.enemies_count} enemy types, Scaled to ${this.state.enableScale ? this.state.scalePct + '%' : '100%'} for Sim)`;
+        statusDiv.textContent = `Successfully imported 100% Health Route: ${data.fight_name} (${data.enemies_count} enemy types, Scaled to ${this.state.enableScale ? currentScale + '%' : '100%'} for Sim)`;
         statusDiv.classList.remove("hidden");
       }
 
@@ -425,12 +445,22 @@ export class LogImporter {
         this.state.selectedRouteType = "custom_imported";
       }
       const desc = document.getElementById("dungeon-route-desc");
-      if (desc) desc.textContent = `Custom route: ${data.fight_name} (100% Base HP, scaled to ${this.state.enableScale ? this.state.scalePct + '%' : '100%'} in sim).`;
+      if (desc) desc.textContent = `Custom route: ${data.fight_name} (100% Base HP, scaled to ${this.state.enableScale ? currentScale + '%' : '100%'} in sim).`;
 
       document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
       const cardDungeon = document.getElementById("card-mode-dungeon");
       if (cardDungeon) cardDungeon.classList.add("active");
       this.state.activeMode = "dungeon";
+
+      const inpScale = document.getElementById("input-scale-pct");
+      if (inpScale && this.state.scalePct) {
+        inpScale.value = this.state.scalePct;
+      }
+      const chkScale = document.getElementById("check-scale-damage");
+      if (chkScale) {
+        chkScale.checked = true;
+        this.state.enableScale = true;
+      }
 
       ProfileGenerator.updateEditor(this.state);
     } catch (e) {
@@ -444,6 +474,83 @@ export class LogImporter {
       if (btn) {
         btn.textContent = "IMPORT ROUTE";
         btn.disabled = false;
+      }
+    }
+  }
+
+  async runReplay() {
+    const inputUrl = document.getElementById("input-report-url");
+    const urlOrCode = inputUrl ? inputUrl.value.trim() : "";
+    const reportCode = this.state.reportCode || urlOrCode;
+
+    const selectFight = document.getElementById("select-fight");
+    const selectPlayer = document.getElementById("select-player");
+    const fightId = selectFight && selectFight.value ? parseInt(selectFight.value) : (this.state.selectedFightId || 1);
+    const playerId = selectPlayer && selectPlayer.value ? parseInt(selectPlayer.value) : (this.state.selectedPlayerId || 1);
+
+    const btnRun = document.getElementById("btn-run-replay");
+    const statusBox = document.getElementById("replay-status-box");
+    const statusText = document.getElementById("replay-status-text");
+    const btnOpenReport = document.getElementById("btn-open-replay-report");
+
+    if (!reportCode) {
+      showThemedNotice({
+        title: "NO REPORT SPECIFIED",
+        message: "Please enter a FellowshipLogs URL or Report Code to run exact replay.",
+        type: "error"
+      });
+      return;
+    }
+
+    if (btnRun) {
+      btnRun.textContent = "COMPARING LOG TO SIM...";
+      btnRun.disabled = true;
+    }
+    if (statusBox) statusBox.classList.remove("hidden");
+    if (statusText) statusText.textContent = `Extracting timeline & simulating Fight ${fightId}...`;
+    if (btnOpenReport) btnOpenReport.classList.add("hidden");
+
+    try {
+      const res = await fetch("/api/replay/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url_or_code: reportCode,
+          fight_id: fightId,
+          player_id: playerId,
+          iterations: 1000
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        if (statusText) statusText.textContent = `Error: ${data.error}`;
+        showThemedNotice({
+          title: "COMPARISON FAILED",
+          message: data.error,
+          type: "error"
+        });
+        return;
+      }
+
+      const matchPct = data.summary?.overall_match_pct || 100.0;
+      if (statusText) {
+        statusText.innerHTML = `<span style="color:#17c964;font-weight:700;">Comparison complete!</span> Overall parity: <strong style="color:#d4af6e;">${matchPct}%</strong>`;
+      }
+      if (btnOpenReport) {
+        btnOpenReport.classList.remove("hidden");
+        btnOpenReport.onclick = () => window.open(data.report_url || "/exact_replay_report.html", "_blank");
+      }
+    } catch (e) {
+      if (statusText) statusText.textContent = `Error: ${e.message}`;
+      showThemedNotice({
+        title: "COMPARISON ERROR",
+        message: e.message,
+        type: "error"
+      });
+    } finally {
+      if (btnRun) {
+        btnRun.textContent = "RUN LOG TO SIM COMPARE";
+        btnRun.disabled = false;
       }
     }
   }

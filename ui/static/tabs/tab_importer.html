@@ -25,10 +25,24 @@
           <select id="select-player" class="form-select"></select>
         </div>
 
-        <div class="form-group full-width">
-          <button id="btn-load-character" class="btn btn-primary btn-lg">
+        <div class="form-group full-width" style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <button id="btn-load-character" class="btn btn-primary btn-lg" style="flex: 1; min-width: 220px;">
             IMPORT CHARACTER LOADOUT
           </button>
+          <button id="btn-run-replay" class="btn btn-gold btn-lg" style="flex: 1; min-width: 260px; background: linear-gradient(135deg, #b08e58, #d4af6e); color: #0f0f11; font-weight: 700; border: none; cursor: pointer; letter-spacing: 0.5px;">
+            RUN LOG TO SIM COMPARE
+          </button>
+        </div>
+        <div id="replay-status-box" class="card hidden" style="grid-column: 1 / -1; margin-top: 12px; padding: 16px 20px; border: 1px solid rgba(176, 142, 88, 0.35); background: #121215; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="replay-spinner" class="status-dot" style="background: #d4af6e; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 10px rgba(212, 175, 110, 0.6); animation: pulse 1.5s infinite;"></span>
+              <span id="replay-status-text" style="color: #ecedee; font-weight: 600; font-size: 13px;">Extracting timeline events...</span>
+            </div>
+            <button id="btn-open-replay-report" class="btn btn-gold btn-sm hidden" style="background: linear-gradient(135deg, #b08e58, #d4af6e); color: #0f0f11; font-weight: 700; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; transition: opacity 0.15s ease;">
+              VIEW COMPARISON REPORT ↗
+            </button>
+          </div>
         </div>
       </div>
 

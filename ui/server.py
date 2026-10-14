@@ -17,6 +17,7 @@ ROOT_DIR = os.path.dirname(UI_DIR)
 sys.path.insert(0, UI_DIR)
 
 import importer
+import export_report
 
 PORT = 5000
 CONFIG_FILE = os.path.join(UI_DIR, "config.json")
@@ -225,6 +226,9 @@ class SimulationManager:
             "report": txt_content,
             "has_html": os.path.exists(html_file)
         }
+        with self.lock:
+            self.last_results = done_payload
+            self.running = False
         self.broadcast("done", done_payload)
 
 SIM_MANAGER = SimulationManager()
@@ -447,9 +451,56 @@ class FellowSimcHandler(http.server.BaseHTTPRequestHandler):
                 SIM_MANAGER.unsubscribe(client_queue)
             return
 
+        elif url.path in ["/api/simulation/status", "/api/simulate/status"]:
+            running = SIM_MANAGER.is_running()
+            self.send_json(200, {
+                "running": running,
+                "results": getattr(SIM_MANAGER, "last_results", None) if not running else None
+            })
+            return
+
         elif url.path == "/api/builds":
             builds = load_all_local_builds()
             self.send_json(200, {"builds": builds})
+            return
+
+        elif url.path in ["/api/export/comparison", "/export_comparison.html", "/api/comparison/export"]:
+            params = urllib.parse.parse_qs(url.query)
+            baseline = params.get("baseline", [None])[0]
+            is_download = params.get("download", ["0"])[0] in ["1", "true", "yes"]
+            try:
+                html_content = export_report.generate_comparison_export_html(RUN_DIR, ROOT_DIR, baseline_name=baseline)
+                encoded = html_content.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(encoded)))
+                if is_download:
+                    self.send_header("Content-Disposition", 'attachment; filename="fellowsimc_comparison_rankings.html"')
+                self.end_headers()
+                self.wfile.write(encoded)
+            except Exception as e:
+                self.send_json(500, {"error": f"Failed to generate comparison export: {e}"})
+            return
+
+        elif url.path in ["/api/replay-report", "/exact_replay_report.html", "/simc_replay_report.html", "/exact_replay_midpls.html", "/exact_replay_sww.html"] or url.path.startswith("/replay_report_") or url.path.startswith("/exact_replay_") or url.path.startswith("/simc_"):
+            report_name = url.path.lstrip("/")
+            if url.path == "/api/replay-report":
+                report_name = "exact_replay_report.html"
+            report_path = os.path.join(ROOT_DIR, report_name)
+            if os.path.exists(report_path):
+                try:
+                    with open(report_path, "rb") as f:
+                        content = f.read()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Content-Length", str(len(content)))
+                    self.end_headers()
+                    self.wfile.write(content)
+                except Exception as e:
+                    self.send_json(500, {"error": f"Failed to load replay report: {e}"})
+            else:
+                self.send_json(404, {"error": f"Replay report '{report_name}' not found."})
             return
 
         elif url.path in ["/api/report", "/test_report.html", "/latest_sim.html"]:
@@ -813,6 +864,124 @@ hr {
                     "downloaded_images": downloaded_count,
                     "heroes_saved": list(heroes.keys())
                 })
+
+            elif url.path == "/api/replay/run":
+                cfg = load_config()
+                client_id = (cfg.get("client_id") or "").strip()
+                client_secret = (cfg.get("client_secret") or "").strip()
+                if not client_id or not client_secret:
+                    self.send_json(400, {
+                        "error": "FellowshipLogs API Key is not configured. Please configure your Client ID and Client Secret in API Settings.",
+                        "error_type": "api_key_missing"
+                    })
+                    return
+
+                raw_code = data.get("url_or_code") or data.get("report_code") or ""
+                code, default_fight, default_source = importer.extract_report_code(raw_code)
+                if not code:
+                    code = data.get("report_code") or ""
+                fight_id = int(data.get("fight_id") or default_fight or 1)
+                player_id = int(data.get("player_id") or default_source or 1)
+                iterations = int(data.get("iterations", 1000))
+
+                if not code:
+                    self.send_json(400, {"error": "Missing report code or URL."})
+                    return
+
+                try:
+                    # 1. Extract 1:1 Timeline
+                    tools_dir = os.path.join(ROOT_DIR, "tools")
+                    if tools_dir not in sys.path:
+                        sys.path.insert(0, tools_dir)
+                    import extract_combat_log_timeline
+                    import generate_replay_report
+
+                    timeline_json_path = os.path.join(ROOT_DIR, "exact_replay_timeline.json")
+                    results_json_path = os.path.join(ROOT_DIR, "exact_replay_results.json")
+                    simc_json_path = os.path.join(ROOT_DIR, "exact_replay_simc.json")
+                    report_html_path = os.path.join(ROOT_DIR, "exact_replay_report.html")
+                    report_json_path = os.path.join(ROOT_DIR, "exact_replay_report.json")
+                    profile_simc_path = os.path.join(ROOT_DIR, "replay_run.simc")
+
+                    extract_combat_log_timeline.extract_timeline(
+                        report_code=code,
+                        fight_id=fight_id,
+                        player_id=player_id,
+                        output_file=timeline_json_path
+                    )
+
+                    # 2. Fetch Character Data & Generate Replay Profile
+                    char_data = importer.fetch_character_data(
+                        client_id, client_secret, code, fight_id, player_id
+                    )
+                    gen_prof = importer.generate_simc_profile(char_data, {"iterations": iterations})
+                    base_profile = gen_prof.get("profile_text", "")
+
+                    # Strip out apl routes or standalone apl files, insert combat_replay
+                    profile_lines = []
+                    for line in base_profile.splitlines():
+                        if "apl/routes" in line or "apl/heroes" in line:
+                            continue
+                        profile_lines.append(line)
+
+                    # Prepend combat_replay config
+                    replay_header = [
+                        f"# ====================================================================",
+                        f"# Exact 1:1 Combat Log Replay Profile - Report {code} Fight {fight_id}",
+                        f"# Driven by C++ Native Combat Replay Subsystem",
+                        f"# ====================================================================",
+                        f"iterations={iterations}",
+                        f"combat_replay={timeline_json_path}",
+                        f"combat_replay_output={results_json_path}",
+                        f"json2={simc_json_path}",
+                        f"html={os.path.join(ROOT_DIR, 'simc_replay_report.html')}",
+                        ""
+                    ]
+                    full_profile_text = "\n".join(replay_header) + "\n" + "\n".join(profile_lines)
+                    with open(profile_simc_path, "w", encoding="utf-8") as f:
+                        f.write(full_profile_text)
+
+                    # 3. Locate & Run simc.exe
+                    candidate_paths = [
+                        os.path.join(ROOT_DIR, "simc.exe"),
+                        os.path.join(ROOT_DIR, "simc-engine", "bin", "x64", "Release", "simc.exe"),
+                        os.path.join(ROOT_DIR, "bin", "x64", "Release", "simc.exe")
+                    ]
+                    simc_exe = next((p for p in candidate_paths if os.path.exists(p)), None)
+                    if not simc_exe:
+                        self.send_json(500, {"error": "simc.exe binary not found. Please build the engine."})
+                        return
+
+                    cmd = [simc_exe, profile_simc_path]
+                    proc = subprocess.run(cmd, cwd=ROOT_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    if proc.returncode != 0:
+                        self.send_json(500, {
+                            "error": f"simc.exe failed with return code {proc.returncode}",
+                            "output": proc.stdout[-1500:] if proc.stdout else "",
+                            "stderr": proc.stderr[-1500:] if proc.stderr else ""
+                        })
+                        return
+
+                    # 4. Generate Replay HTML & JSON Audit Report
+                    generate_replay_report.generate_report(
+                        results_file=results_json_path,
+                        simc_file=simc_json_path,
+                        timeline_file=timeline_json_path,
+                        output_html=report_html_path,
+                        output_json=report_json_path
+                    )
+
+                    with open(report_json_path, "r", encoding="utf-8") as f:
+                        summary_report = json.load(f)
+
+                    self.send_json(200, {
+                        "success": True,
+                        "report_url": "/exact_replay_report.html",
+                        "summary": summary_report
+                    })
+                except Exception as e:
+                    self.send_json(500, {"error": f"Replay execution failed: {e}"})
+                return
 
             else:
                 self.send_json(404, {"error": f"Unknown endpoint: {url.path}"})

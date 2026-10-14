@@ -1,0 +1,124 @@
+
+
+report_details=1
+optimal_raid=0
+# max_time=420
+# max_time=50
+max_time=290
+target_error=0.1
+iterations=100000
+chart_show_relative_difference=1
+vary_combat_length=0
+single_actor_batch=1
+desired_targets=1
+
+
+# apl/chuey_dungeon.simc
+
+# apl/dungeon.simc
+
+# scale_only=crit,haste,mastery,vers
+# scale_intellect=100
+# scale_crit_rating=590
+# scale_haste_rating=590
+# scale_mastery_rating=590
+# scale_versatility_rating=590
+# positive_scale_delta=1
+# calculate_scale_factors=1
+# dps_plot_stat=haste,crit_rating,mastery,versatility
+# # dps_plot_stat=haste:0,mastery:0,crit:0,versatility:0
+# dps_plot_points=10
+# dps_plot_step=300
+# dps_plot_positive=1
+
+lisa="Lisa"
+level=80
+
+# initial_resource=spirit=100
+
+apl/aeona/lisa_apl.simc
+
+gear_intellect=1442
+
+# gear_haste_rating=1650
+gear_haste_rating=1250
+gear_crit_rating=1515
+gear_versatility_rating=1550
+# gear_versatility_rating=960
+gear_mastery_rating=200
+
+
+gems.amethyst_power=2664
+gems.ruby_power=120
+gems.diamond_power=2304
+
+
+
+
+# talents=practical_overcharge:1/uchronia:1/temporal_paradox:1/overcharge_manipulation:1/fractions_of_time:1
+
+# weapon=natures_fury
+relic1=alzeracs_essence
+
+# gems.amethyst_power=2742
+# gems.ruby_power=120
+
+# gems.amethyst_power=2658
+# gems.ruby_power=972
+
+# gems.amethyst_power=1200
+# gems.ruby_power=1296
+# gems.topaz_power=1200
+
+# gems.amethyst_power=3960
+# gems.amethyst_power=2988
+# gems.topaz_power=972
+# gems.ruby_power=1296
+
+
+
+# gems.amethyst_power=2904
+# gems.ruby_power=1296
+# gems.topaz_power=324
+
+# sets.deaths_grasp=1
+# sets.draconic_might=1
+# sets.dark_prophecy=1
+
+# weapon=icicles_of_anzhyr
+# weapon=chronoshift
+
+# weapon_trait.diamond_strike=4
+# weapon_trait.kindling=4
+weapon_trait.willful_momentum=4
+
+talents=erasure:1/chrona_tap:1/uchronia:1/hastening_doom:1/synchronicity:1/temporal_shift:1/oblivions_embrace:1
+
+# copy="Lonesome Song","Lisa"
+legendary.lonesome_song=1
+# copy="Mass Entropy","Lisa"
+# legendary.mass_entropy=1
+# copy="Chrono Trigger","Lisa"
+# legendary.chrono_trigger=1
+
+copy="No Erasure","Lisa"
+talents=erasure:0/chrona_tap:1/uchronia:1/hastening_doom:1/synchronicity:1/temporal_shift:1/oblivions_embrace:1
+copy="No Tap","Lisa"
+talents=erasure:1/chrona_tap:0/uchronia:1/hastening_doom:1/synchronicity:1/temporal_shift:1/oblivions_embrace:1
+copy="No Uchronia","Lisa"
+talents=erasure:1/chrona_tap:1/uchronia:0/hastening_doom:1/synchronicity:1/temporal_shift:1/oblivions_embrace:1
+copy="No Haste Doom","Lisa"
+talents=erasure:1/chrona_tap:1/uchronia:1/hastening_doom:0/synchronicity:1/temporal_shift:1/oblivions_embrace:1
+copy="No Synchron","Lisa"
+talents=erasure:1/chrona_tap:1/uchronia:1/hastening_doom:1/synchronicity:0/temporal_shift:1/oblivions_embrace:1
+copy="No Temp Shift","Lisa"
+talents=erasure:1/chrona_tap:1/uchronia:1/hastening_doom:1/synchronicity:1/temporal_shift:0/oblivions_embrace:1
+copy="No Obliv Emb","Lisa"
+talents=erasure:1/chrona_tap:1/uchronia:1/hastening_doom:1/synchronicity:1/temporal_shift:1/oblivions_embrace:0
+copy="+Entropic Burst (Free)","Lisa"
+talents=erasure:1/chrona_tap:1/uchronia:1/hastening_doom:1/synchronicity:1/temporal_shift:1/oblivions_embrace:1/entropic_burst:1
+copy="No Lego","Lisa"
+legendary.lonesome_song=0
+copy="Mass Entropy","Lisa"
+legendary.lonesome_song=0
+legendary.mass_entropy=1
