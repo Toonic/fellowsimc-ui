@@ -65,6 +65,12 @@ jobs:
             Get-ChildItem -Path apl -Exclude "development" | Copy-Item -Destination release-package\apl -Recurse -Force
           }
           
+          # Copy tools (needed by /api/replay/run), skipping local scratch folders
+          if (Test-Path tools) {
+            New-Item -ItemType Directory -Force -Path release-package\tools
+            Get-ChildItem -Path tools -Filter *.py | Copy-Item -Destination release-package\tools -Force
+          }
+          
           # Copy Profiles if present
           if (Test-Path profiles) { Copy-Item -Recurse profiles release-package\profiles }
           
@@ -72,6 +78,18 @@ jobs:
           Copy-Item -Recurse ui release-package\ui
           Remove-Item -Recurse -Force release-package\ui\__pycache__ -ErrorAction SilentlyContinue
           Remove-Item -Force release-package\ui\*config.json -ErrorAction SilentlyContinue
+          
+          # Sanity check: fail the build if required files are missing
+          $required = @(
+            "release-package\simc.exe",
+            "release-package\start_ui.bat",
+            "release-package\ui\server.py",
+            "release-package\tools\extract_combat_log_timeline.py",
+            "release-package\tools\generate_replay_report.py"
+          )
+          foreach ($f in $required) {
+            if (-not (Test-Path $f)) { throw "Missing from release package: $f" }
+          }
           
           # Create ZIP archive
           Compress-Archive -Path release-package\* -DestinationPath simc-windows.zip
